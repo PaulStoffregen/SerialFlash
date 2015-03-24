@@ -58,7 +58,7 @@ void setup() {
     file.close();
   } else {
     Serial.println("  create file");
-    SerialFlash.createWritable("soundfile.wav", 3081000);
+    SerialFlash.createErasable("soundfile.wav", 3081000);
   }
 
   Serial.println("wavetable1 test");

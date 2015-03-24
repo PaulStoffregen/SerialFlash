@@ -195,14 +195,21 @@ bool SerialFlashChip::create(const char *filename, uint32_t length, uint32_t ali
 		straddr += string_length(straddr);
 		straddr = (straddr + 3) & 0x0003FFFC;
 	}
-	// for files aligned to pages or sectors, adjust addr & len
 	if (align > 0) {
+		// for files aligned to sectors, adjust addr & len
 		address += align - 1;
 		address /= align;
 		address *= align;
 		length += align - 1;
 		length /= align;
 		length *= align;
+	} else {
+		// always align every file to a page boundary
+		// for predictable write latency and to guarantee
+		// write suspend for reading another file can't
+		// conflict on the same page (2 files never share
+		// a write page).
+		address = (address + 255) & 0xFFFFFF00;
 	}
 	// last check, if enough space exists...
 	len = strlen(filename);

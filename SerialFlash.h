@@ -20,9 +20,6 @@ public:
 
 	static SerialFlashFile open(const char *filename);
 	static bool create(const char *filename, uint32_t length, uint32_t align = 0);
-	static bool createWritable(const char *filename, uint32_t length) {
-		return create(filename, length, 256);
-	}
 	static bool createErasable(const char *filename, uint32_t length) {
 		return create(filename, length, blockSize());
 	}
