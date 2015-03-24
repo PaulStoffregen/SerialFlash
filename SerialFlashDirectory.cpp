@@ -94,7 +94,6 @@ static uint16_t filename_hash(const char *filename)
 		hash *= 16777619;
 	}
 	hash %= (uint32_t)0xFFFF;
-	Serial.printf(" hash = %04X for string %s\n", hash, filename);
 	return hash;
 }
 
