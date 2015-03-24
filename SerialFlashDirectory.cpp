@@ -85,17 +85,17 @@ static uint32_t check_signature(void)
 
 static uint16_t filename_hash(const char *filename)
 {
-	uint16_t crc;
+	// http://isthe.com/chongo/tech/comp/fnv/
+	uint32_t hash = 2166136261;
 	const char *p;
 
-	crc = 0xFFFF;
 	for (p=filename; *p; p++) {
-		// TODO: replace with fast CRC hardware?
-		crc = _crc16_update(crc, *p);
+		hash ^= *p;
+		hash *= 16777619;
 	}
-	crc ^= 0xFFFF;
-	if (crc == 0xFFFF) crc = 0;
-	return crc;
+	hash %= (uint32_t)0xFFFF;
+	Serial.printf(" hash = %04X for string %s\n", hash, filename);
+	return hash;
 }
 
 static bool filename_compare(const char *filename, uint32_t straddr)
