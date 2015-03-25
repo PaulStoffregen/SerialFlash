@@ -206,6 +206,7 @@ bool SerialFlashChip::create(const char *filename, uint32_t length, uint32_t ali
 	if (!maxfiles) return false;
 	stringsize = (maxfiles & 0xFFFF0000) >> 14;
 	maxfiles &= 0xFFFF;
+	// TODO: should we check if the file already exists?  Then what?
 	// find the first unused slot for this file
 	index = find_first_unallocated_file_index(maxfiles);
 	if (index >= maxfiles) return false;
@@ -293,7 +294,13 @@ bool SerialFlashChip::readdir(char *filename, uint32_t strsize, uint32_t &filesi
 
 void SerialFlashFile::erase()
 {
-	// TODO: erase all the blocks of a file
-	// if it's been block aligned, of course
+	uint32_t i, blocksize;
+
+	blocksize = SerialFlash.blockSize();
+	if (address & (blocksize - 1)) return; // must begin on a block boundary
+	if (length & (blocksize - 1)) return;  // must be exact number of blocks
+	for (i=0; i < length; i += blocksize) {
+		SerialFlash.eraseBlock(address + i);
+	}
 }
 

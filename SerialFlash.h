@@ -39,11 +39,13 @@ public:
 	static bool begin();
 	static uint32_t capacity();
 	static uint32_t blockSize();
+	static void readID(uint8_t *buf);
 	static void read(void *buf, uint32_t addr, uint32_t len);
 	static bool ready();
 	static void wait();
 	static void write(const void *buf, uint32_t addr, uint32_t len);
 	static void eraseAll();
+	static void eraseBlock(uint32_t addr);
 
 	static SerialFlashFile open(const char *filename);
 	static bool create(const char *filename, uint32_t length, uint32_t align = 0);
@@ -56,8 +58,6 @@ private:
 	static uint16_t dirindex;    // current position for readdir()
 	static uint8_t fourbytemode; // 0=use 24 bit address, 1=use 32 bit address
 	static uint8_t busy;         // 0 = ready, 1 = suspendable busy, 2 = busy for realz
-	static uint8_t blocksize;    // erasable uniform block size, 1=4K, 2=8K, etc
-	static uint8_t capacityId;   // 3rd byte from 0x9F identification command
 };
 
 extern SerialFlashChip SerialFlash;

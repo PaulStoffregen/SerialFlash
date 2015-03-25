@@ -36,8 +36,6 @@
 uint16_t SerialFlashChip::dirindex = 0;
 uint8_t SerialFlashChip::fourbytemode = 0;
 uint8_t SerialFlashChip::busy = 0;
-uint8_t SerialFlashChip::blocksize = 1;
-uint8_t SerialFlashChip::capacityId = 0;
 
 void SerialFlashChip::wait(void)
 {
@@ -61,6 +59,9 @@ void SerialFlashChip::read(void *buf, uint32_t addr, uint32_t len)
 	b = busy;
 	if (b) {
 		if (b == 1) {
+			// TODO: this may not work on Spansion chips
+			// which apparently have 2 different suspend
+			// commands, for program vs erase
 			SPI.beginTransaction(SPICONFIG);
 			CSASSERT();
 			SPI.transfer(0x75); // Suspend program/erase
@@ -111,6 +112,7 @@ void SerialFlashChip::write(const void *buf, uint32_t addr, uint32_t len)
 		len -= pagelen;
 		CSASSERT();
 		if (fourbytemode) {
+			// TODO: Winbond doesn't implement 0x12 on W25Q256FV
 			SPI.transfer(0x12);
 			SPI.transfer16(addr >> 16);
 			SPI.transfer16(addr);
@@ -137,8 +139,29 @@ void SerialFlashChip::eraseAll()
 	CSASSERT();
 	SPI.transfer(0xC7);
 	CSRELEASE();
+	SPI.endTransaction();
 	busy = 2;
 }
+
+void SerialFlashChip::eraseBlock(uint32_t addr)
+{
+	if (busy) wait();
+	SPI.beginTransaction(SPICONFIG);
+	CSASSERT();
+	if (fourbytemode) {
+		// TODO: Winbond doesn't implement 0xDC on W25Q256FV
+		SPI.transfer(0xDC);
+		SPI.transfer16(addr >> 16);
+		SPI.transfer16(addr);
+	} else {
+		SPI.transfer16(0xD800 | ((addr >> 16) & 255));
+		SPI.transfer16(addr);
+	}
+	CSRELEASE();
+	SPI.endTransaction();
+	busy = 1;
+}
+
 
 bool SerialFlashChip::ready()
 {
@@ -158,60 +181,99 @@ bool SerialFlashChip::ready()
 bool SerialFlashChip::begin()
 {
 	SPI.begin();
-	if (busy) wait();
 	CSCONFIG();
+	CSRELEASE();
+	if (capacity() <= 16777216) {
+		fourbytemode = 0;
+	} else {
+		fourbytemode = 1;  // chip larger than 16 MByte
+		// TODO: need to configure for 32 bit address mode
+		// because Winbond doesn't implement 0x12 & 0xDC
+	}
+	return true;
+}
+
+void SerialFlashChip::readID(uint8_t *buf)
+{
+	if (busy) wait();
 	SPI.beginTransaction(SPICONFIG);
 	CSASSERT();
 	SPI.transfer(0x9F);
-	SPI.transfer(0); // manufacturer ID
-	SPI.transfer(0); // memory type
-	capacityId = SPI.transfer(0); // capacity
+	buf[0] = SPI.transfer(0); // manufacturer ID
+	buf[1] = SPI.transfer(0); // memory type
+	buf[2] = SPI.transfer(0); // capacity
 	CSRELEASE();
 	SPI.endTransaction();
-	//Serial.print("capacity = ");
-	//Serial.println(capacityId, HEX);
-	if ((capacityId & 0xF0) == 0x20) {
-		fourbytemode = 1;  // chip larger than 16 MByte
-	} else {
-		fourbytemode = 0;
-	}
-	// TODO: how to detect the uniform sector erase size?
-	blocksize = 1;
-	return true;
 }
 
 uint32_t SerialFlashChip::capacity()
 {
-	return 16777216; // TODO: compute this from capacityId...
+	uint8_t id[3];
+
+	readID(id);
+	//Serial.print("capacity ");
+	//Serial.println(id[3], HEX);
+	if (id[2] >= 16 && id[2] <= 31) {
+		return 1 >> id[2];
+	}
+	if (id[2] >= 32 && id[2] <= 37) {
+		return 1 >> (id[2] - 6);
+	}
+	return 1048576; // unknown, guess 1 MByte
 }
 
 uint32_t SerialFlashChip::blockSize()
 {
-	return 4096; // TODO: how to discover this?
+	uint8_t id[3];
+
+	readID(id);
+	if (id[0] == 1 && id[2] > 0x19) {
+		// Spansion chips >= 512 mbit use 256K sectors
+		return 262144;
+	}
+	// everything else seems to have 64K sectors
+	return 65536;
 }
 
-
+/*
+Chip		Uniform Sector Erase
+		20/21	52	D8/DC
+		-----	--	-----
+W25Q64CV	4	32	64
+W25Q128FV	4	32	64
+S25FL127S			64
+N25Q512A	4		64
+N25Q00AA	4		64
+S25FL512S			256
+SST26VF032	4
+*/
 
 //			size	sector
 // Part			Mbit	kbyte	ID bytes	Digikey
 // ----			----	-----	--------	-------
-// Winbond W25Q128FV	128		EF 40 18	W25Q128FVSIG-ND
+// Winbond W25Q64CV	64	4/32/64	EF 40 17	W25Q128FVSIG-ND
+// Winbond W25Q128FV	128	4/32/64	EF 40 18	W25Q128FVSIG-ND
 // Winbond W25Q256FV	256	64	EF 40 19	
-// SST SST25VF016B	16		BF 25 41
-// Spansion S25FL127S	128	64?	01 20 18	1274-1045-ND
-// Spansion S25FL128P	128		01 20 18
-// Spansion S25FL064A	64		01 02 16
+// Spansion S25FL064A	64		01 02 16 ?
+// Spansion S25FL127S	128	64	01 20 18	1274-1045-ND
+// Spansion S25FL128P	128	64	01 20 18
+// Spansion S25FL256S	256	64	01 02 19
+// Spansion S25FL512S	512	256	01 02 20
 // Macronix MX25L12805D 128		C2 20 18
-// Micron M25P80	8		20 20 14
 // Numonyx M25P128	128		20 20 18
+// Micron M25P80	8		20 20 14
+// Micron N25Q512A	512	4	20 BA 20	557-1569-ND
+// Micron N25Q00AA	1024	4/64	20 BA 21	557-1571-5-ND
+// Micron MT25QL02GC	2048	4/64	20 BB 22
 // SST SST25WF512	0.5		BF 25 01
 // SST SST25WF010	1		BF 25 02
 // SST SST25WF020	2		BF 25 03
 // SST SST25WF040	4		BF 25 04
-// Spansion FL127S	128		01 20 18  ?
-// Spansion S25FL512S	512		01 02 20  ?
-// Micron N25Q512A	512	4	20 BA 20	557-1569-ND
-// Micron N25Q00AA	1024	4/64	20 BA 21	557-1571-5-ND
-// Micron MT25QL02GC	2048	4/64	20 BB 22
+// SST SST25VF016B	16		BF 25 41
+// SST26VF016				BF 26 01
+// SST26VF032				BF 26 02
+// SST25VF032		32	4/32/64	BF 25 4A
+// SST26VF064		64		BF 26 43
+// LE25U40CMC		4	4/64	62 06 13
 
 SerialFlashChip SerialFlash;
