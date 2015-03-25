@@ -9,6 +9,8 @@ Performance oriented design does impose some usage limitations.  Files are creat
 
 ## Hardware Compatibility
 
+![W25Q128FV Chip](doc/w25q128fv.jpg)
+
 Winbond W25Q128FV is the only chip actually tested so far.
 
 Spansion and Micron SPI Flash chip testing is planned...
