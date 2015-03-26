@@ -26,12 +26,15 @@
  */
 
 #include "SerialFlash.h"
-#include "SPIFIFO.h"
 
 #define CSCONFIG()  pinMode(6, OUTPUT)
 #define CSASSERT()  digitalWriteFast(6, LOW)
 #define CSRELEASE() digitalWriteFast(6, HIGH)
 #define SPICONFIG   SPISettings(50000000, MSBFIRST, SPI_MODE0)
+
+#if !defined(__arm__) || !defined(CORE_TEENSY)
+#define digitalWriteFast(pin, state) digitalWrite((pin), (state))
+#endif
 
 uint16_t SerialFlashChip::dirindex = 0;
 uint8_t SerialFlashChip::fourbytemode = 0;
