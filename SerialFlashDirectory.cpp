@@ -251,7 +251,7 @@ bool SerialFlashChip::create(const char *filename, uint32_t length, uint32_t ali
 	buf[0] = filename_hash(filename);
 	SerialFlash.write(buf, 8 + index * 2, 2);
 	while (!SerialFlash.ready()) ;  // TODO: timeout
-	return false;
+	return true;
 }
 
 bool SerialFlashChip::readdir(char *filename, uint32_t strsize, uint32_t &filesize)
