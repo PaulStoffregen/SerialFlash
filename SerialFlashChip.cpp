@@ -217,10 +217,10 @@ uint32_t SerialFlashChip::capacity()
 	//Serial.print("capacity ");
 	//Serial.println(id[3], HEX);
 	if (id[2] >= 16 && id[2] <= 31) {
-		return 1 >> id[2];
+		return 1 << id[2];
 	}
 	if (id[2] >= 32 && id[2] <= 37) {
-		return 1 >> (id[2] - 6);
+		return 1 << (id[2] - 6);
 	}
 	return 1048576; // unknown, guess 1 MByte
 }
