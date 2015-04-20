@@ -37,13 +37,13 @@ class SerialFlashChip
 {
 public:
 	static bool begin();
-	static uint32_t capacity();
+	static uint32_t capacity(const uint8_t *id);
 	static uint32_t blockSize();
 	static void readID(uint8_t *buf);
-	static void read(void *buf, uint32_t addr, uint32_t len);
+	static void read(uint32_t addr, void *buf, uint32_t len);
 	static bool ready();
 	static void wait();
-	static void write(const void *buf, uint32_t addr, uint32_t len);
+	static void write(uint32_t addr, const void *buf, uint32_t len);
 	static void eraseAll();
 	static void eraseBlock(uint32_t addr);
 
@@ -55,9 +55,12 @@ public:
 	static void opendir() { dirindex = 0; }
 	static bool readdir(char *filename, uint32_t strsize, uint32_t &filesize);
 private:
-	static uint16_t dirindex;    // current position for readdir()
-	static uint8_t fourbytemode; // 0=use 24 bit address, 1=use 32 bit address
-	static uint8_t busy;         // 0 = ready, 1 = suspendable busy, 2 = busy for realz
+	static uint16_t dirindex; // current position for readdir()
+	static uint8_t flags;	// chip features
+	static uint8_t busy;	// 0 = ready
+				// 1 = suspendable program operation
+				// 2 = suspendable erase operation
+				// 3 = busy for realz!!
 };
 
 extern SerialFlashChip SerialFlash;
@@ -77,7 +80,7 @@ public:
 			if (offset >= length) return 0;
 			rdlen = length - offset;
 		}
-		SerialFlash.read(buf, address + offset, rdlen);
+		SerialFlash.read(address + offset, buf, rdlen);
 		offset += rdlen;
 		return rdlen;
 	}
@@ -86,7 +89,7 @@ public:
 			if (offset >= length) return 0;
 			wrlen = length - offset;
 		}
-		SerialFlash.write(buf, address + offset, wrlen);
+		SerialFlash.write(address + offset, buf, wrlen);
 		offset += wrlen;
 		return wrlen;
 	}

@@ -70,14 +70,14 @@ static uint32_t check_signature(void)
 {
 	uint32_t sig[2];
 
-	SerialFlash.read(sig, 0, 8);
+	SerialFlash.read(0, sig, 8);
 	if (sig[0] == 0xFA96554C) return sig[1];
 	if (sig[0] == 0xFFFFFFFF) {
 		sig[0] = 0xFA96554C;
 		sig[1] = ((DEFAULT_STRINGS_SIZE/4) << 16) | DEFAULT_MAXFILES;
-		SerialFlash.write(sig, 0, 8);
+		SerialFlash.write(0, sig, 8);
 		while (!SerialFlash.ready()) ; // TODO: timeout
-		SerialFlash.read(sig, 0, 8);
+		SerialFlash.read(0, sig, 8);
 		if (sig[0] == 0xFA96554C) return sig[1];
 	}
 	return 0;
@@ -105,7 +105,7 @@ static bool filename_compare(const char *filename, uint32_t straddr)
 
 	p = filename;
 	while (1) {
-		SerialFlash.read(buf, straddr, sizeof(buf));
+		SerialFlash.read(straddr, buf, sizeof(buf));
 		straddr += sizeof(buf);
 		for (i=0; i < sizeof(buf); i++) {
 			if (*p++ != buf[i]) return false;
@@ -129,11 +129,11 @@ SerialFlashFile SerialFlashChip::open(const char *filename)
 	while (index < maxfiles) {
 		n = 8;
 		if (n > maxfiles - index) n = maxfiles - index;
-		SerialFlash.read(hashtable, 8 + index * 2, n * 2);
+		SerialFlash.read(8 + index * 2, hashtable, n * 2);
 		for (i=0; i < n; i++) {
 			if (hashtable[i] == hash) {
 				buf[2] = 0;
-				SerialFlash.read(buf, 8 + maxfiles * 2 + (index+i) * 10, 10);
+				SerialFlash.read(8 + maxfiles * 2 + (index+i) * 10, buf, 10);
 				straddr = 8 + maxfiles * 12 + buf[2] * 4;
 				if (filename_compare(filename, straddr)) {
 					file.address = buf[0];
@@ -158,7 +158,7 @@ static uint32_t find_first_unallocated_file_index(uint32_t maxfiles)
 	do {
 		n = 8;
 		if (index + n > maxfiles) n = maxfiles - index;
-		SerialFlash.read(hashtable, 8 + index * 2, n * 2);
+		SerialFlash.read(8 + index * 2, hashtable, n * 2);
 		for (i=0; i < n; i++) {
 			if (hashtable[i] == 0xFFFF) return index + i;
 		}
@@ -174,7 +174,7 @@ static uint32_t string_length(uint32_t addr)
 	uint32_t len=0;
 
 	while (1) {
-		SerialFlash.read(buf, addr, sizeof(buf));
+		SerialFlash.read(addr, buf, sizeof(buf));
 		for (p=buf; p < buf + sizeof(buf); p++) {
 			if (*p == 0) return len;
 			len++;
@@ -216,7 +216,7 @@ bool SerialFlashChip::create(const char *filename, uint32_t length, uint32_t ali
 		address = straddr + stringsize;
 	} else {
 		buf[2] = 0;
-		SerialFlash.read(buf, 8 + maxfiles * 2 + (index-1) * 10, 10);
+		SerialFlash.read(8 + maxfiles * 2 + (index-1) * 10, buf, 10);
 		address = buf[0] + buf[1];
 		straddr += buf[2] * 4;
 		straddr += string_length(straddr);
@@ -241,15 +241,17 @@ bool SerialFlashChip::create(const char *filename, uint32_t length, uint32_t ali
 	// last check, if enough space exists...
 	len = strlen(filename);
 	// TODO: check for enough string space for filename
-	if (address + length > SerialFlash.capacity()) return false;
+	uint8_t id[3];
+	SerialFlash.readID(id);
+	if (address + length > SerialFlash.capacity(id)) return false;
 
-	SerialFlash.write(filename, straddr, len+1);
+	SerialFlash.write(straddr, filename, len+1);
 	buf[0] = address;
 	buf[1] = length;
 	buf[2] = (straddr - (8 + maxfiles * 12)) / 4;
-	SerialFlash.write(buf, 8 + maxfiles * 2 + index * 10, 10);
+	SerialFlash.write(8 + maxfiles * 2 + index * 10, buf, 10);
 	buf[0] = filename_hash(filename);
-	SerialFlash.write(buf, 8 + index * 2, 2);
+	SerialFlash.write(8 + index * 2, buf, 2);
 	while (!SerialFlash.ready()) ;  // TODO: timeout
 	return true;
 }
@@ -270,7 +272,7 @@ bool SerialFlashChip::readdir(char *filename, uint32_t strsize, uint32_t &filesi
 	dirindex = index + 1;
 
 	buf[1] = 0;
-	SerialFlash.read(buf, 8 + 4 + maxfiles * 2 + index * 10, 6);
+	SerialFlash.read(8 + 4 + maxfiles * 2 + index * 10, buf, 6);
 	if (buf[0] == 0xFFFFFFFF) return false;
 	filesize = buf[0];
 	straddr = 8 + maxfiles * 12 + buf[1] * 4;
@@ -278,7 +280,7 @@ bool SerialFlashChip::readdir(char *filename, uint32_t strsize, uint32_t &filesi
 	while (strsize) {
 		n = strsize;
 		if (n > sizeof(str)) n = sizeof(str);
-		SerialFlash.read(str, straddr, n);
+		SerialFlash.read(straddr, str, n);
 		for (i=0; i < n; i++) {
 			*p++ = str[i];
 			if (str[i] == 0) {

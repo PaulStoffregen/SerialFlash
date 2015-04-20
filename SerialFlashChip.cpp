@@ -37,31 +37,56 @@
 #endif
 
 uint16_t SerialFlashChip::dirindex = 0;
-uint8_t SerialFlashChip::fourbytemode = 0;
+uint8_t SerialFlashChip::flags = 0;
 uint8_t SerialFlashChip::busy = 0;
+
+#define FLAG_32BIT_ADDR		0x01	// larger than 16 MByte address
+#define FLAG_STATUS_CMD70	0x02	// requires special busy flag check
+#define FLAG_DIFF_SUSPEND	0x04	// uses 2 different suspend commands
+#define FLAG_MULTI_DIE		0x08	// multiple die, don't read cross 32M barrier
+#define FLAG_256K_BLOCKS	0x10	// has 256K erase blocks
+#define FLAG_DIE_MASK		0xC0	// top 2 bits count during multi-die erase
 
 void SerialFlashChip::wait(void)
 {
 	uint32_t status;
-	do {
+	//Serial.print("wait-");
+	while (1) {
 		SPI.beginTransaction(SPICONFIG);
 		CSASSERT();
-		status = SPI.transfer16(0x0500);
-		CSRELEASE();
-		SPI.endTransaction();
-	} while ((status & 1));
+		if (flags & FLAG_STATUS_CMD70) {
+			// some Micron chips require this different
+			// command to detect program and erase completion
+			SPI.transfer(0x70);
+			status = SPI.transfer(0);
+			CSRELEASE();
+			SPI.endTransaction();
+			//Serial.printf("b=%02x.", status & 0xFF);
+			if ((status & 0x80)) break;
+		} else {
+			// all others work by simply reading the status reg
+			SPI.transfer(0x05);
+			status = SPI.transfer(0);
+			CSRELEASE();
+			SPI.endTransaction();
+			//Serial.printf("b=%02x.", status & 0xFF);
+			if (!(status & 1)) break;
+		}
+	}
 	busy = 0;
+	//Serial.println();
 }
 
-void SerialFlashChip::read(void *buf, uint32_t addr, uint32_t len)
+void SerialFlashChip::read(uint32_t addr, void *buf, uint32_t len)
 {
 	uint8_t *p = (uint8_t *)buf;
-	uint8_t b;
+	uint8_t b, f;
 
 	memset(p, 0, len);
+	f = flags;
 	b = busy;
 	if (b) {
-		if (b == 1) {
+		if (b < 3) {
 			// TODO: this may not work on Spansion chips
 			// which apparently have 2 different suspend
 			// commands, for program vs erase
@@ -73,23 +98,35 @@ void SerialFlashChip::read(void *buf, uint32_t addr, uint32_t len)
 			delayMicroseconds(20); // Tsus = 20us
 		} else {
 			wait();
+			b = 0;
 		}
 	}
 	SPI.beginTransaction(SPICONFIG);
-	CSASSERT();
-	// TODO: FIFO optimize....
-	if (fourbytemode) {
-		SPI.transfer(0x13);
-		SPI.transfer16(addr >> 16);
-		SPI.transfer16(addr);
-	} else {
-		SPI.transfer16(0x0300 | ((addr >> 16) & 255));
-		SPI.transfer16(addr);
-	}
-	SPI.transfer(p, len);
-	CSRELEASE();
+	do {
+		uint32_t rdlen = len;
+		if (f & FLAG_MULTI_DIE) {
+			if ((addr & 0xFE000000) != ((addr + len - 1) & 0xFE000000)) {
+				rdlen = 0x2000000 - (addr & 0x1FFFFFF);
+			}
+		}
+		CSASSERT();
+		// TODO: FIFO optimize....
+		if (f & FLAG_32BIT_ADDR) {
+			SPI.transfer(0x03);
+			SPI.transfer16(addr >> 16);
+			SPI.transfer16(addr);
+		} else {
+			SPI.transfer16(0x0300 | ((addr >> 16) & 255));
+			SPI.transfer16(addr);
+		}
+		SPI.transfer(p, rdlen);
+		CSRELEASE();
+		p += rdlen;
+		addr += rdlen;
+		len -= rdlen;
+	} while (len > 0);
 	SPI.endTransaction();
-	if (b == 1) {
+	if (b) {
 		SPI.beginTransaction(SPICONFIG);
 		CSASSERT();
 		SPI.transfer(0x7A); // Resume program/erase
@@ -98,62 +135,105 @@ void SerialFlashChip::read(void *buf, uint32_t addr, uint32_t len)
 	}
 }
 
-void SerialFlashChip::write(const void *buf, uint32_t addr, uint32_t len)
+void SerialFlashChip::write(uint32_t addr, const void *buf, uint32_t len)
 {
 	const uint8_t *p = (const uint8_t *)buf;
 	uint32_t max, pagelen;
 
+	//Serial.println("write");
 	do {
 		if (busy) wait();
+		//Serial.printf("pagelen=%d\n", pagelen);
 		SPI.beginTransaction(SPICONFIG);
 		CSASSERT();
+		// write enable command
 		SPI.transfer(0x06);
 		CSRELEASE();
-		//delayMicroseconds(1);
 		max = 256 - (addr & 0xFF);
 		pagelen = (len <= max) ? len : max;
 		len -= pagelen;
 		CSASSERT();
-		if (fourbytemode) {
-			// TODO: Winbond doesn't implement 0x12 on W25Q256FV
-			SPI.transfer(0x12);
+		if (flags & FLAG_32BIT_ADDR) {
+			 //Serial.printf("write 32 bit addr %08X  %02X\n", addr, addr >> 24);
+			SPI.transfer(0x02);
 			SPI.transfer16(addr >> 16);
 			SPI.transfer16(addr);
 		} else {
 			SPI.transfer16(0x0200 | ((addr >> 16) & 255));
 			SPI.transfer16(addr);
 		}
+		// program page command
 		do {
 			SPI.transfer(*p++);
 		} while (--pagelen > 0);
 		CSRELEASE();
 		SPI.endTransaction();
 		busy = 1;
+		//Serial.printf("busy=%d\n", busy);
 	} while (len > 0);
 }
 
 void SerialFlashChip::eraseAll()
 {
 	if (busy) wait();
-	SPI.beginTransaction(SPICONFIG);
-	CSASSERT();
-	SPI.transfer(0x06);
-	CSRELEASE();
-	CSASSERT();
-	SPI.transfer(0xC7);
-	CSRELEASE();
-	SPI.endTransaction();
-	busy = 2;
+	uint8_t id[3];
+	readID(id);
+	//Serial.printf("ID: %02X %02X %02X\n", id[0], id[1], id[2]);
+	if (id[0] == 0x20 && id[2] >= 0x20 && id[2] <= 0x22) {
+		// Micron's multi-die chips require special die erase commands
+		//  N25Q512A	20 BA 20  2 dies  32 Mbyte/die   65 nm transitors
+		//  N25Q00AA	20 BA 21  4 dies  32 Mbyte/die   65 nm transitors
+		//  MT25QL02GC	20 BA 22  2 dies  128 Mbyte/die  45 nm transitors
+		uint8_t die_count = 2;
+		if (id[2] == 0x21) die_count = 4;
+		uint8_t die_index = flags >> 6;
+		 //Serial.printf("Micron die erase %d\n", die_index);
+		flags &= 0x3F;
+		if (die_index >= die_count) return; // all dies erased :-)
+		uint8_t die_size = 2;  // in 16 Mbyte units
+		if (id[2] == 0x22) die_size = 8;
+		SPI.beginTransaction(SPICONFIG);
+		CSASSERT();
+		SPI.transfer(0x06); // write enable command
+		CSRELEASE();
+		 delayMicroseconds(1);
+		CSASSERT();
+		// die erase command
+		SPI.transfer(0xC4);
+		SPI.transfer16((die_index * die_size) << 8);
+		SPI.transfer16(0x0000);
+		CSRELEASE();
+		 //Serial.printf("Micron erase begin\n");
+		flags |= (die_index + 1) << 6;
+	} else {
+		// All other chips support the bulk erase command
+		SPI.beginTransaction(SPICONFIG);
+		CSASSERT();
+		// write enable command
+		SPI.transfer(0x06);
+		CSRELEASE();
+		 delayMicroseconds(1);
+		CSASSERT();
+		// bulk erase command
+		SPI.transfer(0xC7);
+		CSRELEASE();
+		SPI.endTransaction();
+	}
+	busy = 3;
 }
 
 void SerialFlashChip::eraseBlock(uint32_t addr)
 {
+	uint8_t f = flags;
 	if (busy) wait();
 	SPI.beginTransaction(SPICONFIG);
 	CSASSERT();
-	if (fourbytemode) {
-		// TODO: Winbond doesn't implement 0xDC on W25Q256FV
-		SPI.transfer(0xDC);
+	SPI.transfer(0x06); // write enable command
+	CSRELEASE();
+	 delayMicroseconds(1);
+	CSASSERT();
+	if (f & FLAG_32BIT_ADDR) {
+		SPI.transfer(0xD8);
 		SPI.transfer16(addr >> 16);
 		SPI.transfer16(addr);
 	} else {
@@ -162,7 +242,7 @@ void SerialFlashChip::eraseBlock(uint32_t addr)
 	}
 	CSRELEASE();
 	SPI.endTransaction();
-	busy = 1;
+	busy = 2;
 }
 
 
@@ -172,27 +252,93 @@ bool SerialFlashChip::ready()
 	if (!busy) return true;
 	SPI.beginTransaction(SPICONFIG);
 	CSASSERT();
-	status = SPI.transfer16(0x0500);
-	CSRELEASE();
-	SPI.endTransaction();
-	if ((status & 1)) return false;
+	if (flags & FLAG_STATUS_CMD70) {
+		// some Micron chips require this different
+		// command to detect program and erase completion
+		SPI.transfer(0x70);
+		status = SPI.transfer(0);
+		CSRELEASE();
+		SPI.endTransaction();
+		//Serial.printf("ready=%02x\n", status & 0xFF);
+		if ((status & 0x80) == 0) return false;
+	} else {
+		// all others work by simply reading the status reg
+		SPI.transfer(0x05);
+		status = SPI.transfer(0);
+		CSRELEASE();
+		SPI.endTransaction();
+		//Serial.printf("ready=%02x\n", status & 0xFF);
+		if ((status & 1)) return false;
+	}
 	busy = 0;
+	if (flags & 0xC0) {
+		// continue a multi-die erase
+		eraseAll();
+		return false;
+	}
 	return true;
 }
 
 
+#define ID0_WINBOND	0xEF
+#define ID0_SPANSION	0x01
+#define ID0_MICRON	0x20
+#define ID0_MACRONIX	0xC2
+#define ID0_SST		0xBF
+
+//#define FLAG_32BIT_ADDR	0x01	// larger than 16 MByte address
+//#define FLAG_STATUS_CMD70	0x02	// requires special busy flag check
+//#define FLAG_DIFF_SUSPEND	0x04	// uses 2 different suspend commands
+//#define FLAG_256K_BLOCKS	0x10	// has 256K erase blocks
+
 bool SerialFlashChip::begin()
 {
+	uint8_t id[3];
+	uint8_t f;
+	uint32_t size;
+
 	SPI.begin();
 	CSCONFIG();
 	CSRELEASE();
-	if (capacity() <= 16777216) {
-		fourbytemode = 0;
-	} else {
-		fourbytemode = 1;  // chip larger than 16 MByte
-		// TODO: need to configure for 32 bit address mode
-		// because Winbond doesn't implement 0x12 & 0xDC
+	readID(id);
+	f = 0;
+	size = capacity(id);
+	if (size > 16777216) {
+		// more than 16 Mbyte requires 32 bit addresses
+		f |= FLAG_32BIT_ADDR;
+		SPI.beginTransaction(SPICONFIG);
+		if (id[0] == ID0_SPANSION) {
+			// spansion uses MSB of bank register
+			CSASSERT();
+			SPI.transfer16(0x1780); // bank register write
+			CSRELEASE();
+		} else {
+			// micron & winbond & macronix use command
+			CSASSERT();
+			SPI.transfer(0x06); // write enable
+			CSRELEASE();
+			delayMicroseconds(1);
+			CSASSERT();
+			SPI.transfer(0xB7); // enter 4 byte addr mode
+			CSRELEASE();
+		}
+		SPI.endTransaction();
+		if (id[0] == ID0_MICRON) f |= FLAG_MULTI_DIE;
 	}
+	if (id[0] == ID0_SPANSION) {
+		// Spansion has separate suspend commands
+		f |= FLAG_DIFF_SUSPEND;
+		if (size >= 67108864) {
+			// Spansion chips >= 512 mbit use 256K sectors
+			f |= FLAG_256K_BLOCKS;
+		}
+	}
+	if (id[0] == ID0_MICRON) {
+		// Micron requires busy checks with a different command
+		f |= FLAG_STATUS_CMD70; // TODO: all or just multi-die chips?
+	}
+	flags = f;
+	readID(id);
 	return true;
 }
 
@@ -207,36 +353,33 @@ void SerialFlashChip::readID(uint8_t *buf)
 	buf[2] = SPI.transfer(0); // capacity
 	CSRELEASE();
 	SPI.endTransaction();
+	//Serial.printf("ID: %02X %02X %02X\n", buf[0], buf[1], buf[2]);
 }
 
-uint32_t SerialFlashChip::capacity()
+uint32_t SerialFlashChip::capacity(const uint8_t *id)
 {
-	uint8_t id[3];
+	uint32_t n = 1048576; // unknown chips, default to 1 MByte
 
-	readID(id);
-	//Serial.print("capacity ");
-	//Serial.println(id[3], HEX);
 	if (id[2] >= 16 && id[2] <= 31) {
-		return 1 << id[2];
-	}
+		n = 1ul << id[2];
+	} else
 	if (id[2] >= 32 && id[2] <= 37) {
-		return 1 << (id[2] - 6);
+		n = 1ul << (id[2] - 6);
 	}
-	return 1048576; // unknown, guess 1 MByte
+	//Serial.printf("capacity %lu\n", n);
+	return n;
 }
 
 uint32_t SerialFlashChip::blockSize()
 {
-	uint8_t id[3];
-
-	readID(id);
-	if (id[0] == 1 && id[2] > 0x19) {
-		// Spansion chips >= 512 mbit use 256K sectors
-		return 262144;
-	}
+	// Spansion chips >= 512 mbit use 256K sectors
+	if (flags & FLAG_256K_BLOCKS) return 262144;
 	// everything else seems to have 64K sectors
 	return 65536;
 }
+
+
+
 
 /*
 Chip		Uniform Sector Erase
@@ -251,32 +394,35 @@ S25FL512S			256
 SST26VF032	4
 */
 
-//			size	sector
-// Part			Mbit	kbyte	ID bytes	Digikey
-// ----			----	-----	--------	-------
-// Winbond W25Q64CV	64	4/32/64	EF 40 17	W25Q128FVSIG-ND
-// Winbond W25Q128FV	128	4/32/64	EF 40 18	W25Q128FVSIG-ND
-// Winbond W25Q256FV	256	64	EF 40 19	
-// Spansion S25FL064A	64		01 02 16 ?
-// Spansion S25FL127S	128	64	01 20 18	1274-1045-ND
-// Spansion S25FL128P	128	64	01 20 18
-// Spansion S25FL256S	256	64	01 02 19
-// Spansion S25FL512S	512	256	01 02 20
-// Macronix MX25L12805D 128		C2 20 18
-// Numonyx M25P128	128		20 20 18
-// Micron M25P80	8		20 20 14
-// Micron N25Q512A	512	4	20 BA 20	557-1569-ND
-// Micron N25Q00AA	1024	4/64	20 BA 21	557-1571-5-ND
-// Micron MT25QL02GC	2048	4/64	20 BB 22
-// SST SST25WF512	0.5		BF 25 01
-// SST SST25WF010	1		BF 25 02
-// SST SST25WF020	2		BF 25 03
-// SST SST25WF040	4		BF 25 04
-// SST SST25VF016B	16		BF 25 41
-// SST26VF016				BF 26 01
-// SST26VF032				BF 26 02
-// SST25VF032		32	4/32/64	BF 25 4A
-// SST26VF064		64		BF 26 43
-// LE25U40CMC		4	4/64	62 06 13
+
+
+//			size	sector			busy	pgm/erase	chip
+// Part			Mbyte	kbyte	ID bytes	cmd	suspend		erase
+// ----			----	-----	--------	---	-------		-----
+// Winbond W25Q64CV	8	64	EF 40 17
+// Winbond W25Q128FV	16	64	EF 40 18	05	single		60 & C7
+// Winbond W25Q256FV	32	64	EF 40 19	
+// Spansion S25FL064A	8	?	01 02 16
+// Spansion S25FL127S	16	64	01 20 18	05
+// Spansion S25FL128P	16	64	01 20 18
+// Spansion S25FL256S	32	64	01 02 19	05			60 & C7
+// Spansion S25FL512S	64	256	01 02 20
+// Macronix MX25L12805D 16	?	C2 20 18
+// Macronix MX66L51235F	64		C2 20 1A
+// Numonyx M25P128	16	?	20 20 18
+// Micron M25P80	1	?	20 20 14
+// Micron N25Q128A	16	64	20 BA 18
+// Micron N25Q512A	64	?	20 BA 20	70	single		C4 x2
+// Micron N25Q00AA	128	64	20 BA 21		single		C4 x4
+// Micron MT25QL02GC	256	64	20 BA 22	70			C4 x2
+// SST SST25WF010	1/8	?	BF 25 02
+// SST SST25WF020	1/4	?	BF 25 03
+// SST SST25WF040	1/2	?	BF 25 04
+// SST SST25VF016B	1	?	BF 25 41
+// SST26VF016			?	BF 26 01
+// SST26VF032			?	BF 26 02
+// SST25VF032		4	64	BF 25 4A
+// SST26VF064		8	?	BF 26 43
+// LE25U40CMC		1/2	64	62 06 13
 
 SerialFlashChip SerialFlash;
