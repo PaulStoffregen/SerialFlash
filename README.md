@@ -11,11 +11,12 @@ Performance oriented design does impose some usage limitations.  Files are creat
 
 ![W25Q128FV Chip](doc/w25q128fv.jpg)
 
-Winbond W25Q128FV is the only chip actually tested so far.
+These chips have been tested with SerialFlash:
 
-Spansion and Micron SPI Flash chip testing is planned...
-
-TODO: add a list of chips, with verified, should work, or unsupported status.
+    Winbond W25Q128FV
+    Micron N25Q512A
+    Micron N25Q00AA
+    Spansion S25FL127S
 
 SerialFlash automatically detects SPI Flash chip type and capacity to automatically handle differences between supported chips.
 
