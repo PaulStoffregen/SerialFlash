@@ -80,28 +80,58 @@ void SerialFlashChip::wait(void)
 void SerialFlashChip::read(uint32_t addr, void *buf, uint32_t len)
 {
 	uint8_t *p = (uint8_t *)buf;
-	uint8_t b, f;
+	uint8_t b, f, status;
 
 	memset(p, 0, len);
 	f = flags;
+	SPI.beginTransaction(SPICONFIG);
 	b = busy;
 	if (b) {
-		if (b < 3) {
+		// read status register ... chip may no longer be busy
+		CSASSERT();
+		if (flags & FLAG_STATUS_CMD70) {
+			SPI.transfer(0x70);
+			status = SPI.transfer(0);
+			if ((status & 0x80)) b = 0;
+		} else {
+			SPI.transfer(0x05);
+			status = SPI.transfer(0);
+			if (!(status & 1)) b = 0;
+		}
+		CSRELEASE();
+		if (b == 0) {
+			// chip is no longer busy :-)
+			busy = 0;
+		} else if (b < 3) {
 			// TODO: this may not work on Spansion chips
 			// which apparently have 2 different suspend
 			// commands, for program vs erase
-			SPI.beginTransaction(SPICONFIG);
+			CSASSERT();
+			SPI.transfer(0x06); // write enable (Micron req'd)
+			CSRELEASE();
+			delayMicroseconds(1);
 			CSASSERT();
 			SPI.transfer(0x75); // Suspend program/erase
 			CSRELEASE();
-			SPI.endTransaction();
-			delayMicroseconds(20); // Tsus = 20us
+			if (f & FLAG_STATUS_CMD70) {
+				// Micron chips don't actually suspend until flags read
+				CSASSERT();
+				SPI.transfer(0x70);
+				do {
+					status = SPI.transfer(0);
+				} while (!(status & 0x80));
+				CSRELEASE();
+			} else {
+				delayMicroseconds(20); // Tsus = 20us (Winbond)
+			}
 		} else {
-			wait();
-			b = 0;
+			// chip is busy with an operation that can not suspend
+			SPI.endTransaction();	// is this a good idea?
+			wait();			// should we wait without ending
+			b = 0;			// the transaction??
+			SPI.beginTransaction(SPICONFIG);
 		}
 	}
-	SPI.beginTransaction(SPICONFIG);
 	do {
 		uint32_t rdlen = len;
 		if (f & FLAG_MULTI_DIE) {
@@ -125,14 +155,16 @@ void SerialFlashChip::read(uint32_t addr, void *buf, uint32_t len)
 		addr += rdlen;
 		len -= rdlen;
 	} while (len > 0);
-	SPI.endTransaction();
 	if (b) {
-		SPI.beginTransaction(SPICONFIG);
+		CSASSERT();
+		SPI.transfer(0x06); // write enable (Micro req'd)
+		CSRELEASE();
+		delayMicroseconds(1);
 		CSASSERT();
 		SPI.transfer(0x7A); // Resume program/erase
 		CSRELEASE();
-		SPI.endTransaction();
 	}
+	SPI.endTransaction();
 }
 
 void SerialFlashChip::write(uint32_t addr, const void *buf, uint32_t len)
