@@ -182,10 +182,9 @@ void SerialFlashChip::write(uint32_t addr, const void *buf, uint32_t len)
 	const uint8_t *p = (const uint8_t *)buf;
 	uint32_t max, pagelen;
 
-	//Serial.println("write");
+	 //Serial.printf("WR: addr %08X, len %d\n", addr, len);
 	do {
 		if (busy) wait();
-		//Serial.printf("pagelen=%d\n", pagelen);
 		SPI.beginTransaction(SPICONFIG);
 		CSASSERT();
 		// write enable command
@@ -193,25 +192,24 @@ void SerialFlashChip::write(uint32_t addr, const void *buf, uint32_t len)
 		CSRELEASE();
 		max = 256 - (addr & 0xFF);
 		pagelen = (len <= max) ? len : max;
-		len -= pagelen;
+		 //Serial.printf("WR: addr %08X, pagelen %d\n", addr, pagelen);
 		CSASSERT();
 		if (flags & FLAG_32BIT_ADDR) {
-			 //Serial.printf("write 32 bit addr %08X  %02X\n", addr, addr >> 24);
-			SPI.transfer(0x02);
+			SPI.transfer(0x02); // program page command
 			SPI.transfer16(addr >> 16);
 			SPI.transfer16(addr);
 		} else {
 			SPI.transfer16(0x0200 | ((addr >> 16) & 255));
 			SPI.transfer16(addr);
 		}
-		// program page command
+		addr += pagelen;
+		len -= pagelen;
 		do {
 			SPI.transfer(*p++);
 		} while (--pagelen > 0);
 		CSRELEASE();
-		SPI.endTransaction();
 		busy = 1;
-		//Serial.printf("busy=%d\n", busy);
+		SPI.endTransaction();
 	} while (len > 0);
 }
 
