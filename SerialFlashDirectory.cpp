@@ -71,6 +71,7 @@ static uint32_t check_signature(void)
 	uint32_t sig[2];
 
 	SerialFlash.read(0, sig, 8);
+	 //Serial.printf("sig: %08X %08X\n", sig[0], sig[1]);
 	if (sig[0] == 0xFA96554C) return sig[1];
 	if (sig[0] == 0xFFFFFFFF) {
 		sig[0] = 0xFA96554C;
@@ -114,6 +115,15 @@ static bool filename_compare(const char *filename, uint32_t straddr)
 	}
 }
 
+void pbuf(const void *buf, uint32_t len)
+{
+  const uint8_t *p = (const uint8_t *)buf;
+  do {
+    //Serial.printf("%02X ", *p++);
+  } while (--len > 0);
+  //Serial.println();
+}
+
 SerialFlashFile SerialFlashChip::open(const char *filename)
 {
 	uint32_t maxfiles, straddr;
@@ -123,6 +133,7 @@ SerialFlashFile SerialFlashChip::open(const char *filename)
 	SerialFlashFile file;
 
 	maxfiles = check_signature();
+	 //Serial.printf("sig: %08X\n", maxfiles);
 	if (!maxfiles) return file;
 	maxfiles &= 0xFFFF;
 	hash = filename_hash(filename);
@@ -130,12 +141,23 @@ SerialFlashFile SerialFlashChip::open(const char *filename)
 		n = 8;
 		if (n > maxfiles - index) n = maxfiles - index;
 		SerialFlash.read(8 + index * 2, hashtable, n * 2);
+		 //Serial.printf(" read %u: ", 8 + index * 2);
+		 //pbuf(hashtable, n * 2);
 		for (i=0; i < n; i++) {
 			if (hashtable[i] == hash) {
+				 //Serial.printf("  hash match at index %u\n", index+i);
 				buf[2] = 0;
 				SerialFlash.read(8 + maxfiles * 2 + (index+i) * 10, buf, 10);
+
+				 //Serial.printf("  maxf=%d, index=%d, i=%d\n", maxfiles, index, i);
+				 //Serial.printf("  read %u: ", 8 + maxfiles * 2 + (index+i) * 10);
+				 //pbuf(buf, 10);
 				straddr = 8 + maxfiles * 12 + buf[2] * 4;
+				 //Serial.printf("  straddr = %u\n", straddr);
 				if (filename_compare(filename, straddr)) {
+					 //Serial.printf("  match!\n");
+					 //Serial.printf("  addr = %u\n", buf[0]);
+					 //Serial.printf("  len =  %u\n", buf[1]);
 					file.address = buf[0];
 					file.length = buf[1];
 					file.offset = 0;
@@ -207,9 +229,12 @@ bool SerialFlashChip::create(const char *filename, uint32_t length, uint32_t ali
 	stringsize = (maxfiles & 0xFFFF0000) >> 14;
 	maxfiles &= 0xFFFF;
 	// TODO: should we check if the file already exists?  Then what?
+
+
 	// find the first unused slot for this file
 	index = find_first_unallocated_file_index(maxfiles);
 	if (index >= maxfiles) return false;
+	 //Serial.printf("index = %u\n", index);
 	// compute where to store the filename and actual data
 	straddr = 8 + maxfiles * 12;
 	if (index == 0) {
@@ -222,14 +247,19 @@ bool SerialFlashChip::create(const char *filename, uint32_t length, uint32_t ali
 		straddr += string_length(straddr);
 		straddr = (straddr + 3) & 0x0003FFFC;
 	}
+	 //Serial.printf("straddr = %u\n", straddr);
+	 //Serial.printf("address = %u\n", address);
+	 //Serial.printf("length = %u\n", length);
 	if (align > 0) {
 		// for files aligned to sectors, adjust addr & len
 		address += align - 1;
 		address /= align;
 		address *= align;
+		 //Serial.printf("align address = %u\n", address);
 		length += align - 1;
 		length /= align;
 		length *= align;
+		 //Serial.printf("align length = %u\n", length);
 	} else {
 		// always align every file to a page boundary
 		// for predictable write latency and to guarantee
@@ -238,6 +268,7 @@ bool SerialFlashChip::create(const char *filename, uint32_t length, uint32_t ali
 		// a write page).
 		address = (address + 255) & 0xFFFFFF00;
 	}
+	 //Serial.printf("address = %u\n", address);
 	// last check, if enough space exists...
 	len = strlen(filename);
 	// TODO: check for enough string space for filename
@@ -250,7 +281,12 @@ bool SerialFlashChip::create(const char *filename, uint32_t length, uint32_t ali
 	buf[1] = length;
 	buf[2] = (straddr - (8 + maxfiles * 12)) / 4;
 	SerialFlash.write(8 + maxfiles * 2 + index * 10, buf, 10);
+	 //Serial.printf("  write %u: ", 8 + maxfiles * 2 + index * 10);
+	 //pbuf(buf, 10);
+	while (!SerialFlash.ready()) ;  // TODO: timeout
+	 
 	buf[0] = filename_hash(filename);
+	 //Serial.printf("hash = %04X\n", buf[0]);
 	SerialFlash.write(8 + index * 2, buf, 2);
 	while (!SerialFlash.ready()) ;  // TODO: timeout
 	return true;
@@ -270,12 +306,15 @@ bool SerialFlashChip::readdir(char *filename, uint32_t strsize, uint32_t &filesi
 	index = dirindex;
 	if (index >= maxfiles) return false;
 	dirindex = index + 1;
+	 //Serial.printf("readdir, index = %u\n", index);
 
 	buf[1] = 0;
 	SerialFlash.read(8 + 4 + maxfiles * 2 + index * 10, buf, 6);
 	if (buf[0] == 0xFFFFFFFF) return false;
 	filesize = buf[0];
 	straddr = 8 + maxfiles * 12 + buf[1] * 4;
+	 //Serial.printf("  length = %u\n", buf[0]);
+	 //Serial.printf("  straddr = %u\n", straddr);
 
 	while (strsize) {
 		n = strsize;
@@ -284,12 +323,14 @@ bool SerialFlashChip::readdir(char *filename, uint32_t strsize, uint32_t &filesi
 		for (i=0; i < n; i++) {
 			*p++ = str[i];
 			if (str[i] == 0) {
+				 //Serial.printf("  name = %s\n", filename);
 				return true;
 			}
 		}
 		strsize -= n;
 	}
 	*(p - 1) = 0;
+	 //Serial.printf("  name(overflow) = %s\n", filename);
 	return true;
 }
 
