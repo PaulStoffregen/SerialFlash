@@ -38,7 +38,16 @@ void setup() {
   Serial.println("Raw SerialFlash Hardware Test");
   SerialFlash.begin();
 
-  test();
+  if (test()) {
+    Serial.println();
+    Serial.println("All Tests Passed  :-)");
+  } else {
+    Serial.println();
+    Serial.println("Tests Failed  :{");
+    Serial.println();
+    Serial.println("The flash chip may be left in an improper state.");
+    Serial.println("You might need to power cycle to return to normal.");
+  }
 }
 
 
@@ -355,8 +364,6 @@ bool test() {
 
 
 
-  Serial.println();
-  Serial.println("All Tests Passed  :-)");
   return true;
 }
 

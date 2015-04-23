@@ -80,7 +80,7 @@ void SerialFlashChip::wait(void)
 void SerialFlashChip::read(uint32_t addr, void *buf, uint32_t len)
 {
 	uint8_t *p = (uint8_t *)buf;
-	uint8_t b, f, status;
+	uint8_t b, f, status, cmd;
 
 	memset(p, 0, len);
 	f = flags;
@@ -110,8 +110,11 @@ void SerialFlashChip::read(uint32_t addr, void *buf, uint32_t len)
 			SPI.transfer(0x06); // write enable (Micron req'd)
 			CSRELEASE();
 			delayMicroseconds(1);
+			cmd = 0x75; //Suspend program/erase for almost all chips
+			// but Spansion just has to be different for program suspend!
+			if ((f & FLAG_DIFF_SUSPEND) && (b == 1)) cmd = 0x85;
 			CSASSERT();
-			SPI.transfer(0x75); // Suspend program/erase
+			SPI.transfer(cmd); // Suspend command
 			CSRELEASE();
 			if (f & FLAG_STATUS_CMD70) {
 				// Micron chips don't actually suspend until flags read
@@ -122,7 +125,12 @@ void SerialFlashChip::read(uint32_t addr, void *buf, uint32_t len)
 				} while (!(status & 0x80));
 				CSRELEASE();
 			} else {
-				delayMicroseconds(20); // Tsus = 20us (Winbond)
+				CSASSERT();
+				SPI.transfer(0x05);
+				do {
+					status = SPI.transfer(0);
+				} while ((status & 0x01));
+				CSRELEASE();
 			}
 		} else {
 			// chip is busy with an operation that can not suspend
@@ -157,11 +165,13 @@ void SerialFlashChip::read(uint32_t addr, void *buf, uint32_t len)
 	} while (len > 0);
 	if (b) {
 		CSASSERT();
-		SPI.transfer(0x06); // write enable (Micro req'd)
+		SPI.transfer(0x06); // write enable (Micron req'd)
 		CSRELEASE();
 		delayMicroseconds(1);
+		cmd = 0x7A;
+		if ((f & FLAG_DIFF_SUSPEND) && (b == 1)) cmd = 0x8A;
 		CSASSERT();
-		SPI.transfer(0x7A); // Resume program/erase
+		SPI.transfer(cmd); // Resume program/erase
 		CSRELEASE();
 	}
 	SPI.endTransaction();
