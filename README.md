@@ -14,9 +14,12 @@ Performance oriented design does impose some usage limitations.  Files are creat
 These chips have been tested with SerialFlash:
 
     Winbond W25Q128FV
+    Winbond W25Q256FV
     Micron N25Q512A
     Micron N25Q00AA
     Spansion S25FL127S
+    Spansion S25FL256S
+    Spansion S25FL512S
 
 SerialFlash automatically detects SPI Flash chip type and capacity to automatically handle differences between supported chips.
 
