@@ -26,6 +26,7 @@ void setup() {
   int count = 0;
   File rootdir = SD.open("/");
   while (1) {
+    // open a file from the SD card
     Serial.println();
     File f = rootdir.openNextFile();
     if (!f) break;
@@ -34,11 +35,37 @@ void setup() {
     Serial.print("    ");
     unsigned long length = f.size();
     Serial.println(length);
+
+    // check if this file is already on the Flash chip
+    if (SerialFlash.exists(filename)) {
+      Serial.println("  already exists on the Flash chip");
+      SerialFlashFile ff = SerialFlash.open(filename);
+      if (ff && ff.size() == f.size()) {
+        Serial.println("  size is the same, comparing data...");
+        if (compareFiles(f, ff) == true) {
+          Serial.println("  files are identical :)");
+          f.close();
+          ff.close();
+          continue;  // advance to next file
+        } else {
+          Serial.println("  files are different");
+        }
+      } else {
+        Serial.print("  size is different, ");
+        Serial.print(ff.size());
+        Serial.println(" bytes");
+      }
+      // delete the copy on the Flash chip, if different
+      Serial.println("  delete file from Flash chip");
+      SerialFlash.remove(filename);
+    }
+
+    // create the file on the Flash chip and copy data
     if (SerialFlash.create(filename, length)) {
       SerialFlashFile ff = SerialFlash.open(filename);
       if (ff) {
         Serial.print("  copying");
-        // copy data.
+        // copy data loop
         unsigned long count = 0;
         while (count < length) {
           char buf[256];
@@ -56,13 +83,29 @@ void setup() {
     } else {
       Serial.println("  unable to create file");
     }
-    if (++count > 12) break;  // testing, only do first 12 files
     f.close();
   }
   rootdir.close();
 
-
 }
+
+
+bool compareFiles(File &file, SerialFlashFile &ffile) {
+  file.seek(0);
+  ffile.seek(0);
+  unsigned long count = file.size();
+  while (count > 0) {
+    char buf1[128], buf2[128];
+    unsigned long n = count;
+    if (n > 128) n = 128;
+    file.read(buf1, n);
+    ffile.read(buf2, n);
+    if (memcmp(buf1, buf2, n) != 0) return false; // differ
+    count = count - n;
+  }
+  return true;  // all data identical
+}
+
 
 void loop() {
 }

@@ -52,6 +52,9 @@ public:
 	static bool createErasable(const char *filename, uint32_t length) {
 		return create(filename, length, blockSize());
 	}
+	static bool exists(const char *filename);
+	static bool remove(const char *filename);
+	static bool remove(SerialFlashFile &file);
 	static void opendir() { dirindex = 0; }
 	static bool readdir(char *filename, uint32_t strsize, uint32_t &filesize);
 private:
@@ -75,7 +78,7 @@ public:
 		if (address > 0) return true;
 		return false;
 	}
-	uint32_t read(uint8_t *buf, uint32_t rdlen) {
+	uint32_t read(void *buf, uint32_t rdlen) {
 		if (offset + rdlen > length) {
 			if (offset >= length) return 0;
 			rdlen = length - offset;
@@ -119,6 +122,7 @@ protected:
 	uint32_t address;  // where this file's data begins in the Flash, or zero
 	uint32_t length;   // total length of the data in the Flash chip
 	uint32_t offset; // current read/write offset in the file
+	uint16_t dirindex;
 };
 
 

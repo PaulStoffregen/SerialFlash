@@ -94,7 +94,7 @@ static uint16_t filename_hash(const char *filename)
 		hash ^= *p;
 		hash *= 16777619;
 	}
-	hash %= (uint32_t)0xFFFF;
+	hash = (hash % (uint32_t)0xFFFE) + 1; // all values except 0000 & FFFF
 	return hash;
 }
 
@@ -115,14 +115,16 @@ static bool filename_compare(const char *filename, uint32_t straddr)
 	}
 }
 
+#if 0
 void pbuf(const void *buf, uint32_t len)
 {
   const uint8_t *p = (const uint8_t *)buf;
   do {
-    //Serial.printf("%02X ", *p++);
+    Serial.printf("%02X ", *p++);
   } while (--len > 0);
-  //Serial.println();
+  Serial.println();
 }
+#endif
 
 SerialFlashFile SerialFlashChip::open(const char *filename)
 {
@@ -137,6 +139,7 @@ SerialFlashFile SerialFlashChip::open(const char *filename)
 	if (!maxfiles) return file;
 	maxfiles &= 0xFFFF;
 	hash = filename_hash(filename);
+	 //Serial.printf("hash %04X for \"%s\"\n", hash, filename);
 	while (index < maxfiles) {
 		n = 8;
 		if (n > maxfiles - index) n = maxfiles - index;
@@ -161,6 +164,7 @@ SerialFlashFile SerialFlashChip::open(const char *filename)
 					file.address = buf[0];
 					file.length = buf[1];
 					file.offset = 0;
+					file.dirindex = index + i;
 					return file;
 				}
 			} else if (hashtable[i] == 0xFFFF) {
@@ -170,6 +174,40 @@ SerialFlashFile SerialFlashChip::open(const char *filename)
 		index += n;
 	}
 	return file;
+}
+
+bool SerialFlashChip::exists(const char *filename)
+{
+	SerialFlashFile file = open(filename);
+	return (bool)file;
+}
+
+bool SerialFlashChip::remove(const char *filename)
+{
+	SerialFlashFile file = open(filename);
+	return remove(file);
+}
+
+bool SerialFlashChip::remove(SerialFlashFile &file)
+{
+	// To "remove" a file, we simply zero its hash in the lookup
+	// table, so it can't be found by open().  The space on the
+	// flash memory is not freed.
+	if (!file) return false;
+	uint16_t hash;
+	SerialFlash.read(8 + file.dirindex * 2, &hash, 2);
+	 //Serial.printf("remove hash %04X at %d index\n", hash, file.dirindex);
+	hash ^= 0xFFFF;  // write zeros to all ones
+	SerialFlash.write(8 + file.dirindex * 2, &hash, 2);
+	while (!SerialFlash.ready()) ; // wait...  TODO: timeout
+	SerialFlash.read(8 + file.dirindex * 2, &hash, 2);
+	if (hash != 0)  {
+		 //Serial.printf("remove failed, hash %04X\n", hash);
+		return false;
+	}
+	file.address = 0;
+	file.length = 0;
+	return true;
 }
 
 static uint32_t find_first_unallocated_file_index(uint32_t maxfiles)
@@ -223,13 +261,14 @@ bool SerialFlashChip::create(const char *filename, uint32_t length, uint32_t ali
 	uint32_t address, straddr, len;
 	SerialFlashFile file;
 
+	// check if the file already exists
+	if (exists(filename)) return false;
+
 	// first, get the filesystem parameters
 	maxfiles = check_signature();
 	if (!maxfiles) return false;
 	stringsize = (maxfiles & 0xFFFF0000) >> 14;
 	maxfiles &= 0xFFFF;
-	// TODO: should we check if the file already exists?  Then what?
-
 
 	// find the first unused slot for this file
 	index = find_first_unallocated_file_index(maxfiles);
