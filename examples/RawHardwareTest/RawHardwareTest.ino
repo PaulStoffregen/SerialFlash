@@ -377,6 +377,7 @@ const char * id2chip(const unsigned char *id)
 	if (id[0] == 0xEF) {
 		// Winbond
 		if (id[1] == 0x40) {
+			if (id[2] == 0x14) return "W25Q80BV";
 			if (id[2] == 0x17) return "W25Q64FV";
 			if (id[2] == 0x18) return "W25Q128FV";
 			if (id[2] == 0x19) return "W25Q256FV";
