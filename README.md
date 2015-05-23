@@ -13,6 +13,7 @@ Performance oriented design does impose some usage limitations.  Files are creat
 
 These chips have been tested with SerialFlash:
 
+    Winbond W25Q80BV    (http://www.adafruit.com/product/1564)
     Winbond W25Q128FV
     Winbond W25Q256FV
     Micron N25Q512A
@@ -64,6 +65,16 @@ New files must be created using these funtions.  Each returns true if the file i
 Once created, files can never be renamed or deleted.  The file's size can never change.  Writing additional data can NOT grow the size of file.
 
 Files created for erasing automatically increase in size to the nearest number of erasable blocks, resulting in a file that may be 4K to 128K larger than requested.
+
+### Delete A File
+
+    SerialFlash.remove(filename);
+
+The actual space used by the file is not reclaimed.  However, a new file with this name may be created after the original is deleted.
+
+### Check If A File Exists (without opening)
+
+    SerialFlash.exists(filename);
 
 ### Directory Listing
 
