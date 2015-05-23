@@ -336,6 +336,7 @@ bool SerialFlashChip::readdir(char *filename, uint32_t strsize, uint32_t &filesi
 	uint32_t maxfiles, index, straddr;
 	uint32_t i, n;
 	uint32_t buf[2];
+	uint16_t hash;
 	char str[16], *p=filename;
 
 	filename[0] = 0;
@@ -343,10 +344,14 @@ bool SerialFlashChip::readdir(char *filename, uint32_t strsize, uint32_t &filesi
 	if (!maxfiles) return false;
 	maxfiles &= 0xFFFF; 
 	index = dirindex;
-	if (index >= maxfiles) return false;
+	while (1) {
+		if (index >= maxfiles) return false;
+		 //Serial.printf("readdir, index = %u\n", index);
+		SerialFlash.read(8 + index * 2, &hash, 2);
+		if (hash != 0) break;
+		index++;  // skip deleted entries
+	}
 	dirindex = index + 1;
-	 //Serial.printf("readdir, index = %u\n", index);
-
 	buf[1] = 0;
 	SerialFlash.read(8 + 4 + maxfiles * 2 + index * 10, buf, 6);
 	if (buf[0] == 0xFFFFFFFF) return false;
