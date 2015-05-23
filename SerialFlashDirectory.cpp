@@ -236,8 +236,8 @@ static uint32_t string_length(uint32_t addr)
 	while (1) {
 		SerialFlash.read(addr, buf, sizeof(buf));
 		for (p=buf; p < buf + sizeof(buf); p++) {
-			if (*p == 0) return len;
 			len++;
+			if (*p == 0) return len;
 		}
 		addr += len;
 	}
