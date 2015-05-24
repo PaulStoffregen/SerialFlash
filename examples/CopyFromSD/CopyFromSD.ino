@@ -7,8 +7,8 @@ const int FlashChipSelect = 6;
 
 void setup() {
   //uncomment these if using Teensy audio shield
-  SPI.setSCK(14);  // Audio shield has SCK on pin 14
-  SPI.setMOSI(7);  // Audio shield has MOSI on pin 7
+  //SPI.setSCK(14);  // Audio shield has SCK on pin 14
+  //SPI.setMOSI(7);  // Audio shield has MOSI on pin 7
 
   // wait up to 10 seconds for Arduino Serial Monitor
   unsigned long startMillis = millis();
