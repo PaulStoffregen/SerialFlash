@@ -37,6 +37,7 @@ class SerialFlashChip
 {
 public:
 	static bool begin();
+	static bool begin(uint8_t cs_pin);
 	static uint32_t capacity(const uint8_t *id);
 	static uint32_t blockSize();
 	static void readID(uint8_t *buf);
@@ -58,6 +59,7 @@ public:
 	static void opendir() { dirindex = 0; }
 	static bool readdir(char *filename, uint32_t strsize, uint32_t &filesize);
 private:
+	static uint8_t cs_pin;	//CS pin (defaults to 6)
 	static uint16_t dirindex; // current position for readdir()
 	static uint8_t flags;	// chip features
 	static uint8_t busy;	// 0 = ready
