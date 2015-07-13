@@ -1,6 +1,7 @@
 /* SerialFlash Library - for filesystem-like access to SPI Serial Flash memory
  * https://github.com/PaulStoffregen/SerialFlash
  * Copyright (C) 2015, Paul Stoffregen, paul@pjrc.com
+ * Added ability to change CS pin, Wyatt Olson <wyatt@digitalcave.ca>
  *
  * Development of this library was funded by PJRC.COM, LLC by sales of Teensy.
  * Please support PJRC's efforts to develop open source software by purchasing
@@ -333,9 +334,9 @@ bool SerialFlashChip::begin(){
 	return begin(6);
 }
 
-bool SerialFlashChip::begin(uint8_t cs_pin)
+bool SerialFlashChip::begin(uint8_t _cs_pin)
 {
-	cs_pin = cs_pin;
+	cs_pin = _cs_pin;
 	uint8_t id[3];
 	uint8_t f;
 	uint32_t size;

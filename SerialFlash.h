@@ -1,6 +1,7 @@
 /* SerialFlash Library - for filesystem-like access to SPI Serial Flash memory
  * https://github.com/PaulStoffregen/SerialFlash
  * Copyright (C) 2015, Paul Stoffregen, paul@pjrc.com
+ * Added ability to change CS pin, Wyatt Olson <wyatt@digitalcave.ca>
  *
  * Development of this library was funded by PJRC.COM, LLC by sales of Teensy.
  * Please support PJRC's efforts to develop open source software by purchasing
