@@ -1,4 +1,5 @@
 SerialFlash	KEYWORD1
+SerialFlashFile	KEYWORD1
 createWritable	KEYWORD2
 erase	KEYWORD2
 eraseAll	KEYWORD2
