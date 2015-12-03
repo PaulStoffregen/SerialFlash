@@ -2,7 +2,7 @@
 #include <SD.h>
 #include <SPI.h>
 
-const int SDchipSelect = 4;
+const int SDchipSelect = 4; // Audio Shield has SD card CS on pin 10
 const int FlashChipSelect = 6;
 
 void setup() {
@@ -67,6 +67,7 @@ void setup() {
         Serial.print("  copying");
         // copy data loop
         unsigned long count = 0;
+        unsigned char dotcount = 9;
         while (count < length) {
           char buf[256];
           unsigned int n;
@@ -74,9 +75,13 @@ void setup() {
           ff.write(buf, n);
           count = count + n;
           Serial.print(".");
+          if (++dotcount > 100) {
+             Serial.println();
+             dotcount = 0;
+          }
         }
         ff.close();
-        Serial.println();
+        if (dotcount > 0) Serial.println();
       } else {
         Serial.println("  error opening freshly created file!");
       }
@@ -86,7 +91,8 @@ void setup() {
     f.close();
   }
   rootdir.close();
-
+  delay(10);
+  Serial.println("Finished All Files");
 }
 
 

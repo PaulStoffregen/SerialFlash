@@ -14,6 +14,7 @@ Performance oriented design does impose some usage limitations.  Files are creat
 These chips have been tested with SerialFlash:
 
     Winbond W25Q80BV    (http://www.adafruit.com/product/1564)
+    Winbond W25Q64FV
     Winbond W25Q128FV
     Winbond W25Q256FV
     Micron N25Q512A
