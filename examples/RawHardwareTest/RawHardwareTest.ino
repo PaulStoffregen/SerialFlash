@@ -46,6 +46,9 @@ void setup() {
   if (test()) {
     Serial.println();
     Serial.println("All Tests Passed  :-)");
+    Serial.println();
+    Serial.println("Test data was written to your chip.  You must run");
+    Serial.println("EraseEverything before using this chip for files.");
   } else {
     Serial.println();
     Serial.println("Tests Failed  :{");
