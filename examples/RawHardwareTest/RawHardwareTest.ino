@@ -32,6 +32,11 @@ void setup() {
   //SPI.setSCK(14);  // Audio shield has SCK on pin 14
   //SPI.setMOSI(7);  // Audio shield has MOSI on pin 7
 
+  //uncomment these if you have other SPI chips connected
+  //to keep them disabled while using only SerialFlash
+  //pinMode(4, INPUT_PULLUP);
+  //pinMode(10, INPUT_PULLUP);
+
   while (!Serial) ;
   delay(100);
 
@@ -41,6 +46,9 @@ void setup() {
   if (test()) {
     Serial.println();
     Serial.println("All Tests Passed  :-)");
+    Serial.println();
+    Serial.println("Test data was written to your chip.  You must run");
+    Serial.println("EraseEverything before using this chip for files.");
   } else {
     Serial.println();
     Serial.println("Tests Failed  :{");
