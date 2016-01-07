@@ -26,6 +26,7 @@
  */
 
 #include "SerialFlash.h"
+#include "util/SerialFlash_directwrite.h"
 
 #define CSCONFIG()  pinMode(6, OUTPUT)
 #define CSASSERT()  digitalWriteFast(6, LOW)
