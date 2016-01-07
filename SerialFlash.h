@@ -1,6 +1,7 @@
 /* SerialFlash Library - for filesystem-like access to SPI Serial Flash memory
  * https://github.com/PaulStoffregen/SerialFlash
  * Copyright (C) 2015, Paul Stoffregen, paul@pjrc.com
+ * Added ability to change CS pin, Wyatt Olson <wyatt@digitalcave.ca>
  *
  * Development of this library was funded by PJRC.COM, LLC by sales of Teensy.
  * Please support PJRC's efforts to develop open source software by purchasing
@@ -37,6 +38,7 @@ class SerialFlashChip
 {
 public:
 	static bool begin();
+	static bool begin(uint8_t cs_pin);
 	static uint32_t capacity(const uint8_t *id);
 	static uint32_t blockSize();
 	static void readID(uint8_t *buf);
@@ -58,6 +60,7 @@ public:
 	static void opendir() { dirindex = 0; }
 	static bool readdir(char *filename, uint32_t strsize, uint32_t &filesize);
 private:
+	static uint8_t cs_pin;	//CS pin (defaults to 6)
 	static uint16_t dirindex; // current position for readdir()
 	static uint8_t flags;	// chip features
 	static uint8_t busy;	// 0 = ready
