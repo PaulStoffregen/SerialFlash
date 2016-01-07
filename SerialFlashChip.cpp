@@ -383,6 +383,23 @@ bool SerialFlashChip::begin()
 	return true;
 }
 
+void SerialFlashChip::sleep()
+{
+	if (busy) wait();
+	SPI.beginTransaction(SPICONFIG);
+	CSASSERT();
+	SPI.transfer(0xB9); // Deep power down command
+	CSRELEASE();
+}
+
+void SerialFlashChip::wakeup()
+{
+	SPI.beginTransaction(SPICONFIG);
+	CSASSERT();
+	SPI.transfer(0xAB); // Wake up from deep power down command
+	CSRELEASE();
+}
+
 void SerialFlashChip::readID(uint8_t *buf)
 {
 	if (busy) wait();
