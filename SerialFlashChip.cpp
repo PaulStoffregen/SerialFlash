@@ -28,18 +28,12 @@
 #include "SerialFlash.h"
 #include "util/SerialFlash_directwrite.h"
 
-#define CSCONFIG()  pinMode(6, OUTPUT)
-#define CSASSERT()  digitalWriteFast(6, LOW)
-#define CSRELEASE() digitalWriteFast(6, HIGH)
 #define SPICONFIG   SPISettings(50000000, MSBFIRST, SPI_MODE0)
-
-#if !defined(__arm__) || !defined(CORE_TEENSY)
-#define digitalWriteFast(pin, state) digitalWrite((pin), (state))
-#endif
 
 uint16_t SerialFlashChip::dirindex = 0;
 uint8_t SerialFlashChip::flags = 0;
 uint8_t SerialFlashChip::busy = 0;
+uint8_t SerialFlashChip::cspin = 6;
 
 #define FLAG_32BIT_ADDR		0x01	// larger than 16 MByte address
 #define FLAG_STATUS_CMD70	0x02	// requires special busy flag check
@@ -47,6 +41,28 @@ uint8_t SerialFlashChip::busy = 0;
 #define FLAG_MULTI_DIE		0x08	// multiple die, don't read cross 32M barrier
 #define FLAG_256K_BLOCKS	0x10	// has 256K erase blocks
 #define FLAG_DIE_MASK		0xC0	// top 2 bits count during multi-die erase
+
+void SerialFlashChip::CSCONFIG()  
+{
+	pinMode(cspin, OUTPUT);
+}
+
+void SerialFlashChip::CSASSERT()  
+{
+	#if !defined(__arm__) || !defined(CORE_TEENSY)
+		digitalWrite(cspin, LOW);
+	#else
+		digitalWriteFast(cspin, LOW);
+	#endif
+}
+void SerialFlashChip::CSRELEASE() 
+{
+	#if !defined(__arm__) || !defined(CORE_TEENSY)
+		digitalWrite(cspin, HIGH);
+	#else
+		digitalWriteFast(cspin, HIGH);
+	#endif
+}
 
 void SerialFlashChip::wait(void)
 {
@@ -332,12 +348,14 @@ bool SerialFlashChip::ready()
 //#define FLAG_DIFF_SUSPEND	0x04	// uses 2 different suspend commands
 //#define FLAG_256K_BLOCKS	0x10	// has 256K erase blocks
 
-bool SerialFlashChip::begin()
+bool SerialFlashChip::begin(uint8_t pin)
 {
 	uint8_t id[3];
 	uint8_t f;
 	uint32_t size;
-
+    
+    cspin = pin;
+    
 	SPI.begin();
 	CSCONFIG();
 	CSRELEASE();
@@ -381,6 +399,23 @@ bool SerialFlashChip::begin()
 	flags = f;
 	readID(id);
 	return true;
+}
+
+void SerialFlashChip::sleep()
+{
+	if (busy) wait();
+	SPI.beginTransaction(SPICONFIG);
+	CSASSERT();
+	SPI.transfer(0xB9); // Deep power down command
+	CSRELEASE();
+}
+
+void SerialFlashChip::wakeup()
+{
+	SPI.beginTransaction(SPICONFIG);
+	CSASSERT();
+	SPI.transfer(0xAB); // Wake up from deep power down command
+	CSRELEASE();	
 }
 
 void SerialFlashChip::readID(uint8_t *buf)

@@ -36,12 +36,14 @@ class SerialFlashFile;
 class SerialFlashChip
 {
 public:
-	static bool begin();
+	static bool begin(uint8_t pin = 6);
 	static uint32_t capacity(const uint8_t *id);
 	static uint32_t blockSize();
 	static void readID(uint8_t *buf);
 	static void read(uint32_t addr, void *buf, uint32_t len);
 	static bool ready();
+	static void sleep();
+	static void wakeup();
 	static void wait();
 	static void write(uint32_t addr, const void *buf, uint32_t len);
 	static void eraseAll();
@@ -64,6 +66,10 @@ private:
 				// 1 = suspendable program operation
 				// 2 = suspendable erase operation
 				// 3 = busy for realz!!
+	static uint8_t cspin;	// chip select pin
+	static void CSCONFIG();
+    static void CSASSERT();
+	static void CSRELEASE(); 
 };
 
 extern SerialFlashChip SerialFlash;
