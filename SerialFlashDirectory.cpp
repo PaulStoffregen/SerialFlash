@@ -75,7 +75,7 @@ static uint32_t check_signature(void)
 	if (sig[0] == 0xFA96554C) return sig[1];
 	if (sig[0] == 0xFFFFFFFF) {
 		sig[0] = 0xFA96554C;
-		sig[1] = ((DEFAULT_STRINGS_SIZE/4) << 16) | DEFAULT_MAXFILES;
+		sig[1] = ((uint32_t)(DEFAULT_STRINGS_SIZE/4) << 16) | DEFAULT_MAXFILES;
 		SerialFlash.write(0, sig, 8);
 		while (!SerialFlash.ready()) ; // TODO: timeout
 		SerialFlash.read(0, sig, 8);
