@@ -2,8 +2,8 @@
 #include <SD.h>
 #include <SPI.h>
 
-const int SDchipSelect = 4; // Audio Shield has SD card CS on pin 10
-const int FlashChipSelect = 6;
+const int SDchipSelect = 4;    // Audio Shield has SD card CS on pin 10
+const int FlashChipSelect = 6; // digital pin for flash chip CS pin
 
 void setup() {
   //uncomment these if using Teensy audio shield
@@ -24,7 +24,7 @@ void setup() {
   if (!SD.begin(SDchipSelect)) {
     error("Unable to access SD card");
   }
-  if (!SerialFlash.begin()) {
+  if (!SerialFlash.begin(FlashChipSelect)) {
     error("Unable to access SPI Flash chip");
   }
 

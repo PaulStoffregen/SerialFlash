@@ -18,9 +18,10 @@
 // the exact part number and manufacturer of the chip.
 
 
-
 #include <SerialFlash.h>
 #include <SPI.h>
+
+const int FlashChipSelect = 6; // digital pin for flash chip CS pin
 
 SerialFlashFile file;
 
@@ -41,7 +42,7 @@ void setup() {
   delay(100);
 
   Serial.println("Raw SerialFlash Hardware Test");
-  SerialFlash.begin();
+  SerialFlash.begin(FlashChipSelect);
 
   if (test()) {
     Serial.println();

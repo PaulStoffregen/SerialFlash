@@ -1,6 +1,8 @@
 #include <SerialFlash.h>
 #include <SPI.h>
 
+const int FlashChipSelect = 6; // digital pin for flash chip CS pin
+
 SerialFlashFile file;
 
 const unsigned long testIncrement = 4096;
@@ -20,7 +22,7 @@ void setup() {
   while (!Serial && (millis() - startMillis < 10000)) ;
   delay(100);
 
-  SerialFlash.begin();
+  SerialFlash.begin(FlashChipSelect);
   unsigned char id[3];
   SerialFlash.readID(id);
   unsigned long size = SerialFlash.capacity(id);

@@ -28,18 +28,16 @@
 #include "SerialFlash.h"
 #include "util/SerialFlash_directwrite.h"
 
-#define CSCONFIG()  pinMode(6, OUTPUT)
-#define CSASSERT()  digitalWriteFast(6, LOW)
-#define CSRELEASE() digitalWriteFast(6, HIGH)
+#define CSASSERT()  DIRECT_WRITE_LOW(cspin_basereg, cspin_bitmask)
+#define CSRELEASE() DIRECT_WRITE_HIGH(cspin_basereg, cspin_bitmask)
 #define SPICONFIG   SPISettings(50000000, MSBFIRST, SPI_MODE0)
-
-#if !defined(__arm__) || !defined(CORE_TEENSY)
-#define digitalWriteFast(pin, state) digitalWrite((pin), (state))
-#endif
 
 uint16_t SerialFlashChip::dirindex = 0;
 uint8_t SerialFlashChip::flags = 0;
 uint8_t SerialFlashChip::busy = 0;
+
+static volatile IO_REG_TYPE *cspin_basereg;
+static IO_REG_TYPE cspin_bitmask;
 
 #define FLAG_32BIT_ADDR		0x01	// larger than 16 MByte address
 #define FLAG_STATUS_CMD70	0x02	// requires special busy flag check
@@ -332,14 +330,16 @@ bool SerialFlashChip::ready()
 //#define FLAG_DIFF_SUSPEND	0x04	// uses 2 different suspend commands
 //#define FLAG_256K_BLOCKS	0x10	// has 256K erase blocks
 
-bool SerialFlashChip::begin()
+bool SerialFlashChip::begin(uint8_t pin)
 {
 	uint8_t id[3];
 	uint8_t f;
 	uint32_t size;
 
+	cspin_basereg = PIN_TO_BASEREG(pin);
+	cspin_bitmask = PIN_TO_BITMASK(pin);
 	SPI.begin();
-	CSCONFIG();
+	pinMode(pin, OUTPUT);
 	CSRELEASE();
 	readID(id);
 	f = 0;
@@ -383,6 +383,8 @@ bool SerialFlashChip::begin()
 	return true;
 }
 
+// chips tested: https://github.com/PaulStoffregen/SerialFlash/pull/12#issuecomment-169596992
+//
 void SerialFlashChip::sleep()
 {
 	if (busy) wait();

@@ -36,7 +36,7 @@ class SerialFlashFile;
 class SerialFlashChip
 {
 public:
-	static bool begin();
+	static bool begin(uint8_t pin = 6);
 	static uint32_t capacity(const uint8_t *id);
 	static uint32_t blockSize();
 	static void sleep();

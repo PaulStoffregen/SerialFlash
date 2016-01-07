@@ -1,7 +1,7 @@
 #include <SerialFlash.h>
 #include <SPI.h>
 
-const int FlashChipSelect = 6;
+const int FlashChipSelect = 6; // digital pin for flash chip CS pin
 
 void setup() {
   //uncomment these if using Teensy audio shield
@@ -18,7 +18,7 @@ void setup() {
   delay(100);
   Serial.println("All Files on SPI Flash chip:");
 
-  if (!SerialFlash.begin()) {
+  if (!SerialFlash.begin(FlashChipSelect)) {
     error("Unable to access SPI Flash chip");
   }
 

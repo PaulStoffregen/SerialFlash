@@ -79,9 +79,10 @@
 
 
 //SPI Pins (these are the values on the Audio board; change them if you have different ones)
-#define MOSI              7
+#define MOSI               7
 #define MISO              12
-#define SCK                14
+#define SCK               14
+#define CSPIN              6
 
 void setup(){
   Serial.begin(9600);  //Teensy serial is always at full USB speed and buffered... the baud rate here is required but ignored
@@ -92,7 +93,7 @@ void setup(){
   SPI.setMOSI(MOSI);
   SPI.setMISO(MISO);
   SPI.setSCK(SCK);
-  SerialFlash.begin();
+  SerialFlash.begin(CSPIN);
 
   //We start by formatting the flash...
   uint8_t id[3];
