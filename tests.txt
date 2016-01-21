@@ -23,6 +23,9 @@ Board	Pin	Size	Vendor		Flash Chip		HWTest	CopySD
 5	5	256M	Micron		N25Q256A13ESF40G	Pass
 5	7	256M	Spansion	S70FL256P0XMFI001	Pass
 
+For a photo of all these test boards:
+https://forum.pjrc.com/threads/31491-Will-Paul-s-SPIFlash-library-work-with-these
+
 (wanted)	512M	Micron		MT25QL512ABA8E12-0SIT
 (wanted)	1G	Micron		MT25QL01GBBA8E12-0SIT
 (wanted)	2G	Micron		MT25QL02GCBA8E12-0SIT
