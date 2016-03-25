@@ -96,7 +96,7 @@ void setup(){
   SerialFlash.begin(CSPIN);
 
   //We start by formatting the flash...
-  uint8_t id[3];
+  uint8_t id[5];
   SerialFlash.readID(id);
   SerialFlash.eraseAll();
   

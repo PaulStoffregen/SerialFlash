@@ -23,7 +23,7 @@ void setup() {
   delay(100);
 
   SerialFlash.begin(FlashChipSelect);
-  unsigned char id[3];
+  unsigned char id[5];
   SerialFlash.readID(id);
   unsigned long size = SerialFlash.capacity(id);
 
