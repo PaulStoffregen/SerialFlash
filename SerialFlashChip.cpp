@@ -215,7 +215,7 @@ void SerialFlashChip::write(uint32_t addr, const void *buf, uint32_t len)
 void SerialFlashChip::eraseAll()
 {
 	if (busy) wait();
-	uint8_t id[3];
+	uint8_t id[5];
 	readID(id);
 	//Serial.printf("ID: %02X %02X %02X\n", id[0], id[1], id[2]);
 	if (id[0] == 0x20 && id[2] >= 0x20 && id[2] <= 0x22) {
@@ -332,7 +332,7 @@ bool SerialFlashChip::ready()
 
 bool SerialFlashChip::begin(uint8_t pin)
 {
-	uint8_t id[3];
+	uint8_t id[5];
 	uint8_t f;
 	uint32_t size;
 
@@ -369,8 +369,8 @@ bool SerialFlashChip::begin(uint8_t pin)
 	if (id[0] == ID0_SPANSION) {
 		// Spansion has separate suspend commands
 		f |= FLAG_DIFF_SUSPEND;
-		if (size >= 67108864) {
-			// Spansion chips >= 512 mbit use 256K sectors
+		if (!id[4]) {
+			// Spansion chips with id[4] == 0 use 256K sectors
 			f |= FLAG_256K_BLOCKS;
 		}
 	}
@@ -411,6 +411,10 @@ void SerialFlashChip::readID(uint8_t *buf)
 	buf[0] = SPI.transfer(0); // manufacturer ID
 	buf[1] = SPI.transfer(0); // memory type
 	buf[2] = SPI.transfer(0); // capacity
+	if (buf[0] == ID0_SPANSION) {
+		buf[3] = SPI.transfer(0); // ID-CFI
+		buf[4] = SPI.transfer(0); // sector size
+	}
 	CSRELEASE();
 	SPI.endTransaction();
 	//Serial.printf("ID: %02X %02X %02X\n", buf[0], buf[1], buf[2]);
