@@ -372,6 +372,7 @@ bool SerialFlashChip::readdir(char *filename, uint32_t strsize, uint32_t &filesi
 			}
 		}
 		strsize -= n;
+		straddr += n;
 	}
 	*(p - 1) = 0;
 	 //Serial.printf("  name(overflow) = %s\n", filename);
