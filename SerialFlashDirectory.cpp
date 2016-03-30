@@ -239,7 +239,7 @@ static uint32_t string_length(uint32_t addr)
 			len++;
 			if (*p == 0) return len;
 		}
-		addr += len;
+		addr += sizeof(buf);
 	}
 }
 
