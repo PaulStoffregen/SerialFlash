@@ -192,6 +192,7 @@ void SerialFlashChip::write(uint32_t addr, const void *buf, uint32_t len)
 		max = 256 - (addr & 0xFF);
 		pagelen = (len <= max) ? len : max;
 		 //Serial.printf("WR: addr %08X, pagelen %d\n", addr, pagelen);
+		delayMicroseconds(1); // TODO: reduce this, but prefer safety first
 		CSASSERT();
 		if (flags & FLAG_32BIT_ADDR) {
 			SPI.transfer(0x02); // program page command
