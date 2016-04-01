@@ -421,6 +421,22 @@ void SerialFlashChip::readID(uint8_t *buf)
 	//Serial.printf("ID: %02X %02X %02X\n", buf[0], buf[1], buf[2]);
 }
 
+void SerialFlashChip::readSerialNumber(uint8_t *buf) //needs room for 8 bytes
+{
+	if (busy) wait();
+	SPI.beginTransaction(SPICONFIG);
+	CSASSERT();
+	SPI.transfer(0x4B);			
+	SPI.transfer16(0);	
+	SPI.transfer16(0);
+	for (int i=0; i<8; i++) {		
+		buf[i] = SPI.transfer(0);
+	}
+	CSRELEASE();
+	SPI.endTransaction();
+//	Serial.printf("Serial Number: %02X %02X %02X %02X %02X %02X %02X %02X\n", buf[0], buf[1], buf[2], buf[3], buf[4], buf[5], buf[6], buf[7]);
+}
+
 uint32_t SerialFlashChip::capacity(const uint8_t *id)
 {
 	uint32_t n = 1048576; // unknown chips, default to 1 MByte
