@@ -42,6 +42,7 @@ public:
 	static void sleep();
 	static void wakeup();
 	static void readID(uint8_t *buf);
+	static void readSerialNumber(uint8_t *buf);
 	static void read(uint32_t addr, void *buf, uint32_t len);
 	static bool ready();
 	static void wait();
