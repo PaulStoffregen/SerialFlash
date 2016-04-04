@@ -208,7 +208,7 @@ void SerialFlashChip::write(uint32_t addr, const void *buf, uint32_t len)
 			SPI.transfer(*p++);
 		} while (--pagelen > 0);
 		CSRELEASE();
-		busy = 1;
+		busy = 4;
 		SPI.endTransaction();
 	} while (len > 0);
 }
