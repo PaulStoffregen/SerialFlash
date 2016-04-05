@@ -1,11 +1,14 @@
 // Simple MP3 file player example
 //
+// https://forum.pjrc.com/threads/27059-MP3-Player-Lib-with-example?p=101537&viewfull=1#post101537
+//
 // Requires the prop-shield and Teensy 3.2 or 3.1
 // This example code is in the public domain.
 
 #include <Audio.h>
 #include <Wire.h>
 #include <SPI.h>
+#include <SD.h>
 #include <SerialFlash.h>
 #include <play_sd_mp3.h> // https://github.com/FrankBoesing/Arduino-Teensy-Codec-lib
 //#include <play_sd_aac.h>
@@ -37,6 +40,10 @@ void setup() {
     }
   }
 
+  //Set Volume
+  mixer1.gain(0, 0.5);
+  mixer1.gain(1, 0.5);
+
   //Start Amplifier
   pinMode(PROP_AMP_ENABLE, OUTPUT);
   digitalWrite(PROP_AMP_ENABLE, HIGH);    // Enable Amplifier
@@ -44,7 +51,6 @@ void setup() {
 
 void playFile(const char *filename)
 {
-
   SerialFlashFile ff = SerialFlash.open(filename);
   Serial.print("Playing file: ");
   Serial.println(filename);
@@ -57,7 +63,9 @@ void playFile(const char *filename)
   playMp31.play(pos,sz);
 
   // Simply wait for the file to finish playing.
-  while (playMp31.isPlaying()) {}
+  while (playMp31.isPlaying()) {
+    yield();
+  }
 }
 
 
