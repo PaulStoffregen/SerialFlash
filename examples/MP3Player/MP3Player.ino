@@ -29,6 +29,7 @@ AudioConnection          patchCord3(mixer1, dac1);
 #define FLASH_CHIP_SELECT  6
 
 void setup() {
+  Serial.begin(9600);
   AudioMemory(8); //4
   delay(2000);
 

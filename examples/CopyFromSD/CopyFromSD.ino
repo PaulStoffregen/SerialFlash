@@ -15,6 +15,8 @@ void setup() {
   //pinMode(4, INPUT_PULLUP);
   //pinMode(10, INPUT_PULLUP);
 
+  Serial.begin(9600);
+
   // wait up to 10 seconds for Arduino Serial Monitor
   unsigned long startMillis = millis();
   while (!Serial && (millis() - startMillis < 10000)) ;

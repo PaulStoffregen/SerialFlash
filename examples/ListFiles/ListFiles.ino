@@ -13,6 +13,8 @@ void setup() {
   //pinMode(4, INPUT_PULLUP);
   //pinMode(10, INPUT_PULLUP);
 
+  Serial.begin(9600);
+
   // wait for Arduino Serial Monitor
   while (!Serial) ;
   delay(100);
