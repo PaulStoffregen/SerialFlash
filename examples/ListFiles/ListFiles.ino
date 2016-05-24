@@ -2,6 +2,9 @@
 #include <SPI.h>
 
 const int FlashChipSelect = 6; // digital pin for flash chip CS pin
+// Uncomment this line if using the built-in SPI Flash device
+// on an Arduino 101 board
+//const int FlashChipSelect = 21;
 
 void setup() {
   //uncomment these if using Teensy audio shield
@@ -12,6 +15,8 @@ void setup() {
   //to keep them disabled while using only SerialFlash
   //pinMode(4, INPUT_PULLUP);
   //pinMode(10, INPUT_PULLUP);
+
+  Serial.begin(9600);
 
   // wait for Arduino Serial Monitor
   while (!Serial) ;

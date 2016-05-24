@@ -83,6 +83,9 @@
 #define MISO              12
 #define SCK               14
 #define CSPIN              6
+// Uncomment this line if using the built-in SPI Flash device
+// on an Arduino 101 board
+//#define CSPIN            21
 
 void setup(){
   Serial.begin(9600);  //Teensy serial is always at full USB speed and buffered... the baud rate here is required but ignored

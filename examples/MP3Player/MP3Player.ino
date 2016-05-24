@@ -27,8 +27,12 @@ AudioConnection          patchCord3(mixer1, dac1);
 
 #define PROP_AMP_ENABLE    5
 #define FLASH_CHIP_SELECT  6
+// Uncomment this line if using the built-in SPI Flash device
+// on an Arduino 101 board
+//#define FLASH_CHIP_SELECT 21
 
 void setup() {
+  Serial.begin(9600);
   AudioMemory(8); //4
   delay(2000);
 
