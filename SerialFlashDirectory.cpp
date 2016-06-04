@@ -310,7 +310,7 @@ bool SerialFlashChip::create(const char *filename, uint32_t length, uint32_t ali
 	// last check, if enough space exists...
 	len = strlen(filename);
 	// TODO: check for enough string space for filename
-	uint8_t id[3];
+	uint8_t id[5];
 	SerialFlash.readID(id);
 	if (address + length > SerialFlash.capacity(id)) return false;
 
