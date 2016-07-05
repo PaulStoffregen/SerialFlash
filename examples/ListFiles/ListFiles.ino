@@ -29,7 +29,7 @@ void setup() {
   unsigned int count = 0;
   while (1) {
     char filename[64];
-    unsigned long filesize;
+    uint32_t filesize;
 
     if (SerialFlash.readdir(filename, sizeof(filename), filesize)) {
       Serial.print("  ");
