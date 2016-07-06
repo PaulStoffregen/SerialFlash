@@ -26,7 +26,6 @@ void setup() {
   }
 
   SerialFlash.opendir();
-  unsigned int count = 0;
   while (1) {
     char filename[64];
     uint32_t filesize;
