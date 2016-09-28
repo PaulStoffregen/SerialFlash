@@ -27,10 +27,12 @@
 
 #include "SerialFlash.h"
 
+#ifndef SERIALFLASH_NO_FILES
+
 /* On-chip SerialFlash file allocation data structures:
 
   uint32_t signature = 0xFA96554C;
-  uint16_t maxfiles          
+  uint16_t maxfiles
   uint16_t stringssize  // div by 4
   uint16_t hashes[maxfiles]
   struct {
@@ -243,7 +245,7 @@ static uint32_t string_length(uint32_t addr)
 }
 
 //  uint32_t signature = 0xFA96554C;
-//  uint16_t maxfiles          
+//  uint16_t maxfiles
 //  uint16_t stringssize  // div by 4
 //  uint16_t hashes[maxfiles]
 //  struct {
@@ -322,7 +324,7 @@ bool SerialFlashChip::create(const char *filename, uint32_t length, uint32_t ali
 	 //Serial.printf("  write %u: ", 8 + maxfiles * 2 + index * 10);
 	 //pbuf(buf, 10);
 	while (!SerialFlash.ready()) ;  // TODO: timeout
-	 
+
 	buf[0] = filename_hash(filename);
 	 //Serial.printf("hash = %04X\n", buf[0]);
 	SerialFlash.write(8 + index * 2, buf, 2);
@@ -341,7 +343,7 @@ bool SerialFlashChip::readdir(char *filename, uint32_t strsize, uint32_t &filesi
 	filename[0] = 0;
 	maxfiles = check_signature();
 	if (!maxfiles) return false;
-	maxfiles &= 0xFFFF; 
+	maxfiles &= 0xFFFF;
 	index = dirindex;
 	while (1) {
 		if (index >= maxfiles) return false;
@@ -391,3 +393,4 @@ void SerialFlashFile::erase()
 	}
 }
 
+#endif
