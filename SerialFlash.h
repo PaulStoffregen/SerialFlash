@@ -31,7 +31,9 @@
 #include <Arduino.h>
 #include <SPI.h>
 
+#ifndef SERIALFLASH_NO_FILES
 class SerialFlashFile;
+#endif
 
 class SerialFlashChip
 {
@@ -50,6 +52,7 @@ public:
 	static void eraseAll();
 	static void eraseBlock(uint32_t addr);
 
+#ifndef SERIALFLASH_NO_FILES
 	static SerialFlashFile open(const char *filename);
 	static bool create(const char *filename, uint32_t length, uint32_t align = 0);
 	static bool createErasable(const char *filename, uint32_t length) {
@@ -60,8 +63,11 @@ public:
 	static bool remove(SerialFlashFile &file);
 	static void opendir() { dirindex = 0; }
 	static bool readdir(char *filename, uint32_t strsize, uint32_t &filesize);
+#endif
 private:
+#ifndef SERIALFLASH_NO_FILES
 	static uint16_t dirindex; // current position for readdir()
+#endif
 	static uint8_t flags;	// chip features
 	static uint8_t busy;	// 0 = ready
 				// 1 = suspendable program operation
@@ -71,7 +77,7 @@ private:
 
 extern SerialFlashChip SerialFlash;
 
-
+#ifndef SERIALFLASH_NO_FILES
 class SerialFlashFile
 {
 public:
@@ -127,6 +133,7 @@ protected:
 	uint32_t offset; // current read/write offset in the file
 	uint16_t dirindex;
 };
+#endif
 
 
 #endif

@@ -42,7 +42,9 @@
 #define SPIPORT SPI
 #endif
 
+#ifndef SERIALFLASH_NO_FILES
 uint16_t SerialFlashChip::dirindex = 0;
+#endif
 uint8_t SerialFlashChip::flags = 0;
 uint8_t SerialFlashChip::busy = 0;
 
@@ -436,10 +438,10 @@ void SerialFlashChip::readSerialNumber(uint8_t *buf) //needs room for 8 bytes
 	if (busy) wait();
 	SPIPORT.beginTransaction(SPICONFIG);
 	CSASSERT();
-	SPIPORT.transfer(0x4B);			
-	SPIPORT.transfer16(0);	
+	SPIPORT.transfer(0x4B);
 	SPIPORT.transfer16(0);
-	for (int i=0; i<8; i++) {		
+	SPIPORT.transfer16(0);
+	for (int i=0; i<8; i++) {
 		buf[i] = SPIPORT.transfer(0);
 	}
 	CSRELEASE();
@@ -457,7 +459,7 @@ uint32_t SerialFlashChip::capacity(const uint8_t *id)
 	if (id[2] >= 32 && id[2] <= 37) {
 		n = 1ul << (id[2] - 6);
 	} else
-	if ((id[0]==0 && id[1]==0 && id[2]==0) || 
+	if ((id[0]==0 && id[1]==0 && id[2]==0) ||
 		(id[0]==255 && id[1]==255 && id[2]==255)) {
 		n = 0;
 	}
@@ -496,7 +498,7 @@ SST26VF032	4
 // ----			----	-----	--------	---	-------		-----
 // Winbond W25Q64CV	8	64	EF 40 17
 // Winbond W25Q128FV	16	64	EF 40 18	05	single		60 & C7
-// Winbond W25Q256FV	32	64	EF 40 19	
+// Winbond W25Q256FV	32	64	EF 40 19
 // Spansion S25FL064A	8	?	01 02 16
 // Spansion S25FL127S	16	64	01 20 18	05
 // Spansion S25FL128P	16	64	01 20 18
