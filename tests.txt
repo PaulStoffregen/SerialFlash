@@ -23,9 +23,9 @@ Board	Pin	Size	Vendor		Flash Chip		HWTest	CopySD
 5	5	256M	Micron		N25Q256A13ESF40G	Pass
 5	7	256M	Spansion	S70FL256P0XMFI001	Pass
 
-6	4	32M	Microchip	SST26VF032B-104I/SM
-6	5	32M	Microchip	SST26VF032BA-104I/SM			see issue #36
-6	6	8M	Winbond		W25Q80BV				shady aliexpress vendor
+6	4	32M	Microchip	SST26VF032B-104I/SM	FAIL
+6	5	32M	Microchip	SST26VF032BA-104I/SM	FAIL		see issue #36
+6	6	8M	Winbond		W25Q80BV		Pass		shady aliexpress vendor
 
 7	5	1G	Micron		N25Q00AA				Pesky Products / Tindie
 7	6	2G	Micron		MT25QL02GCBB8E12			Pesky Products / Tindie
