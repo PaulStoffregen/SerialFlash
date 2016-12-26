@@ -62,8 +62,6 @@ void SerialFlashChip::wait(void)
 			status = SPIPORT.transfer(0);
 			CSRELEASE();
 			SPIPORT.endTransaction();
-            sprintf(tbs,"b=%02x.", status & 0xFF);
-            Serial.write(tbs);
 			//Serial.printf("b=%02x.", status & 0xFF);
 			if ((status & 0x80)) break;
 		} else {
