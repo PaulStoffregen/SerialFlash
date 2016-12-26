@@ -220,7 +220,7 @@ void SerialFlashChip::eraseAll()
 	if (busy) wait();
 	uint8_t id[5];
 	readID(id);
- //   Serial.printf("ID: %02X %02X %02X\n", id[0], id[1], id[2]);
+	//Serial.printf("ID: %02X %02X %02X\n", id[0], id[1], id[2]);
 	if (id[0] == 0x20 && id[2] >= 0x20 && id[2] <= 0x22) {
 		// Micron's multi-die chips require special die erase commands
 		//  N25Q512A	20 BA 20  2 dies  32 Mbyte/die   65 nm transitors
@@ -229,7 +229,7 @@ void SerialFlashChip::eraseAll()
 		uint8_t die_count = 2;
 		if (id[2] == 0x21) die_count = 4;
 		uint8_t die_index = flags >> 6;
-        // Serial.printf("Micron die erase %d\n", die_index);
+		 //Serial.printf("Micron die erase %d\n", die_index);
 		flags &= 0x3F;
 		if (die_index >= die_count) return; // all dies erased :-)
 		uint8_t die_size = 2;  // in 16 Mbyte units
@@ -337,7 +337,6 @@ bool SerialFlashChip::begin(SPIClass& device, uint8_t pin)
 {
 	SPIPORT = device;
     //we don't want to issue SPI.begin
-
     //as this potentially undoes specific changes made in the SPI that is handed over to us
     cspin_basereg = PIN_TO_BASEREG(pin);
     cspin_bitmask = PIN_TO_BITMASK(pin);
@@ -346,21 +345,21 @@ bool SerialFlashChip::begin(SPIClass& device, uint8_t pin)
     setflags();
     return true;
 }
-
 bool SerialFlashChip::begin(uint8_t pin)
 {
-	cspin_basereg = PIN_TO_BASEREG(pin);
-	cspin_bitmask = PIN_TO_BITMASK(pin);
-	SPIPORT.begin();
-	pinMode(pin, OUTPUT);
-	CSRELEASE();
+    cspin_basereg = PIN_TO_BASEREG(pin);
+    cspin_bitmask = PIN_TO_BITMASK(pin);
+    SPIPORT.begin();
+    pinMode(pin, OUTPUT);
+    CSRELEASE();
     setflags();
     return true;
 }
-void SerialFlashChip::setflags(){
-    uint8_t id[5];
-    uint8_t f;
-    uint32_t size;
+void SerialFlashChip::setflags()
+{
+	uint8_t id[5];
+	uint8_t f;
+	uint32_t size;
 	readID(id);
 	f = 0;
 	size = capacity(id);
@@ -396,11 +395,10 @@ void SerialFlashChip::setflags(){
 	}
 	if (id[0] == ID0_MICRON) {
 		// Micron requires busy checks with a different command
-        f |= FLAG_STATUS_CMD70; // TODO: all or just multi-die chips?
+		f |= FLAG_STATUS_CMD70; // TODO: all or just multi-die chips?
 	}
 	flags = f;
 	readID(id);
-
 }
 
 // chips tested: https://github.com/PaulStoffregen/SerialFlash/pull/12#issuecomment-169596992
