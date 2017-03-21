@@ -50,9 +50,11 @@ SerialFlash automatically detects SPI Flash chip type and capacity to automatica
     
 Several limitations apply to writing.  Only previously unwritten portions of the file may be written.  File sizes can never change.  Writes may only be done within the file's original size.
 
+### Erase Data
+
     file.erase();
     
-Only files created for erasing can be erased.  The entire file is erased to all 255 (0xFF) bytes.
+Only files created for erasing can be erased.  The entire file is erased to all 255 (0xFF) bytes, which allows the file to be written with new data.
     
 ## Managing Files
 
