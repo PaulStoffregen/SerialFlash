@@ -30,15 +30,12 @@ Board	Pin	Size	Vendor		Flash Chip		HWTest	CopySD
 7	5	1G	Micron		N25Q00AA				Pesky Products / Tindie
 7	6	2G	Micron		MT25QL02GCBB8E12			Pesky Products / Tindie
 
-		2G	Winbond		W25M02GVZEIG
-		1G	Micron		MT29F1G01ABAFDWB-IT:F
-		2G	Micron		MT29F2G01ABAGDWB-IT:G
-		4G	Micron		MT29F4G01ABAGDWB-IT:G
+8	4	2G	Winbond		W25M02GVZEIG
+8	5	1G	Micron		MT29F1G01ABAFDWB-IT:F
+8	6	2G	Micron		MT29F2G01ABAGDWB-IT:G
+8	7	4G	Micron		MT29F4G01ABAGDWB-IT:G
 
 
 For a photo of all these test boards:
 https://forum.pjrc.com/threads/31491-Will-Paul-s-SPIFlash-library-work-with-these
 
-(wanted)	512M	Micron		MT25QL512ABA8E12-0SIT
-(wanted)	1G	Micron		MT25QL01GBBA8E12-0SIT
-(wanted)	2G	Micron		MT25QL02GCBA8E12-0SIT
