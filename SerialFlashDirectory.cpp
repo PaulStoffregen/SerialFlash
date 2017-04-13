@@ -175,6 +175,10 @@ SerialFlashFile SerialFlashChip::open(const char *filename)
 	return file;
 }
 
+SerialFlashFile SerialFlashChip::open(const String& filename) {
+	return open(filename.c_str());
+}
+
 bool SerialFlashChip::exists(const char *filename)
 {
 	SerialFlashFile file = open(filename);
