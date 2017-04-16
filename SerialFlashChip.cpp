@@ -449,6 +449,9 @@ uint32_t SerialFlashChip::capacity(const uint8_t *id)
 {
 	uint32_t n = 1048576; // unknown chips, default to 1 MByte
 
+	if (id[0] == ID0_SPANSION) {
+		n = 1ul << (id[2] + 3);
+	} else
 	if (id[2] >= 16 && id[2] <= 31) {
 		n = 1ul << id[2];
 	} else
