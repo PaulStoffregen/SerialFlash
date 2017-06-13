@@ -44,6 +44,7 @@ public:
 	static void wakeup();
 	static void readID(uint8_t *buf);
 	static void readSerialNumber(uint8_t *buf);
+	static void readSFDP(uint8_t* buf, uint8_t addr, uint16_t len);
 	static void read(uint32_t addr, void *buf, uint32_t len);
 	static bool ready();
 	static void wait();
@@ -68,6 +69,7 @@ private:
 				// 1 = suspendable program operation
 				// 2 = suspendable erase operation
 				// 3 = busy for realz!!
+	static uint8_t chipID;
 };
 
 extern SerialFlashChip SerialFlash;

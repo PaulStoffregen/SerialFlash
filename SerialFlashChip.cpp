@@ -35,6 +35,7 @@
 uint16_t SerialFlashChip::dirindex = 0;
 uint8_t SerialFlashChip::flags = 0;
 uint8_t SerialFlashChip::busy = 0;
+uint8_t SerialFlashChip::chipID = 0;
 
 static volatile IO_REG_TYPE *cspin_basereg;
 static IO_REG_TYPE cspin_bitmask;
@@ -426,6 +427,7 @@ void SerialFlashChip::readID(uint8_t *buf)
 	}
 	CSRELEASE();
 	SPIPORT.endTransaction();
+	chipID = buf[0];			// Save ID for retrieval later
 	//Serial.printf("ID: %02X %02X %02X\n", buf[0], buf[1], buf[2]);
 }
 
@@ -434,15 +436,44 @@ void SerialFlashChip::readSerialNumber(uint8_t *buf) //needs room for 8 bytes
 	if (busy) wait();
 	SPIPORT.beginTransaction(SPICONFIG);
 	CSASSERT();
-	SPIPORT.transfer(0x4B);			
-	SPIPORT.transfer16(0);	
-	SPIPORT.transfer16(0);
-	for (int i=0; i<8; i++) {		
-		buf[i] = SPIPORT.transfer(0);
+	if (ID0_SPANSION == chipID) {
+		// Spansion UniqueID is stored in the SFDP region at address 0x5A
+		// Spansion does not support the 0x4B UniqueID command
+		readSFDP(buf, 0xF8, 8);
+	}
+	else {
+		if (ID0_SST == chipID) {
+			SPIPORT.transfer(0x88);		// SST is 0x88
+			SPIPORT.transfer16(0);		// Dummy bits 15:0
+		}
+		else if (ID0_WINBOND == chipID) {
+			SPIPORT.transfer(0x4B);		// Winbond is 0x4B
+			SPIPORT.transfer16(0);		// Dummy bits 31:16
+			SPIPORT.transfer16(0);		// Dummy bits 15:0
+		}
+		for (int i=0; i<8; i++) {		
+			buf[i] = SPIPORT.transfer(0);
+		}
 	}
 	CSRELEASE();
 	SPIPORT.endTransaction();
 //	Serial.printf("Serial Number: %02X %02X %02X %02X %02X %02X %02X %02X\n", buf[0], buf[1], buf[2], buf[3], buf[4], buf[5], buf[6], buf[7]);
+}
+
+void SerialFlashChip::readSFDP(uint8_t* buf, uint8_t addr, uint16_t len) // buf needs room for up to 256 bytes for entire SFDP
+{
+	if (busy) wait();
+	SPIPORT.beginTransaction(SPICONFIG);
+	CSASSERT();
+	SPIPORT.transfer(0x5A);				// Read SFDP command
+	SPIPORT.transfer16(0);				// Dummy bits 31:16
+	SPIPORT.transfer(addr);				// SFDP address byte
+	SPIPORT.transfer(0);				// Dummy bits 7:0
+	for (int i = 0; i < len; i++) {
+		buf[i] = SPIPORT.transfer(0);
+	}
+	CSRELEASE();
+	SPIPORT.endTransaction();
 }
 
 uint32_t SerialFlashChip::capacity(const uint8_t *id)
@@ -500,6 +531,7 @@ SST26VF032	4
 // Spansion S25FL128P	16	64	01 20 18
 // Spansion S25FL256S	32	64	01 02 19	05			60 & C7
 // Spansion S25FL512S	64	256	01 02 20
+// Spansion S25FL116	2	4	01 40 15
 // Macronix MX25L12805D 16	?	C2 20 18
 // Macronix MX66L51235F	64		C2 20 1A
 // Numonyx M25P128	16	?	20 20 18
