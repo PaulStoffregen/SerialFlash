@@ -336,20 +336,30 @@ bool SerialFlashChip::ready()
 bool SerialFlashChip::begin(SPIClass& device, uint8_t pin)
 {
 	SPIPORT = device;
-	return begin(pin);
+    //we don't want to issue SPI.begin
+    //as this potentially undoes specific changes made in the SPI that is handed over to us
+    cspin_basereg = PIN_TO_BASEREG(pin);
+    cspin_bitmask = PIN_TO_BITMASK(pin);
+    pinMode(pin, OUTPUT);
+    CSRELEASE();
+    setflags();
+    return true;
 }
-
 bool SerialFlashChip::begin(uint8_t pin)
+{
+    cspin_basereg = PIN_TO_BASEREG(pin);
+    cspin_bitmask = PIN_TO_BITMASK(pin);
+    SPIPORT.begin();
+    pinMode(pin, OUTPUT);
+    CSRELEASE();
+    setflags();
+    return true;
+}
+void SerialFlashChip::setflags()
 {
 	uint8_t id[5];
 	uint8_t f;
 	uint32_t size;
-
-	cspin_basereg = PIN_TO_BASEREG(pin);
-	cspin_bitmask = PIN_TO_BITMASK(pin);
-	SPIPORT.begin();
-	pinMode(pin, OUTPUT);
-	CSRELEASE();
 	readID(id);
 	f = 0;
 	size = capacity(id);
@@ -389,7 +399,6 @@ bool SerialFlashChip::begin(uint8_t pin)
 	}
 	flags = f;
 	readID(id);
-	return true;
 }
 
 // chips tested: https://github.com/PaulStoffregen/SerialFlash/pull/12#issuecomment-169596992

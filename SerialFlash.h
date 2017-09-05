@@ -50,7 +50,7 @@ public:
 	static void write(uint32_t addr, const void *buf, uint32_t len);
 	static void eraseAll();
 	static void eraseBlock(uint32_t addr);
-
+    static void setflags(); //added to be able to update flags without calling begin
 	static SerialFlashFile open(const char *filename);
 	static bool create(const char *filename, uint32_t length, uint32_t align = 0);
 	static bool createErasable(const char *filename, uint32_t length) {
@@ -61,9 +61,10 @@ public:
 	static bool remove(SerialFlashFile &file);
 	static void opendir() { dirindex = 0; }
 	static bool readdir(char *filename, uint32_t strsize, uint32_t &filesize);
-private:
+
+   private:
 	static uint16_t dirindex; // current position for readdir()
-	static uint8_t flags;	// chip features
+    static uint8_t flags;	// chip features
 	static uint8_t busy;	// 0 = ready
 				// 1 = suspendable program operation
 				// 2 = suspendable erase operation
