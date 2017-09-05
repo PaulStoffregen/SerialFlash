@@ -76,8 +76,7 @@ extern SerialFlashChip SerialFlash;
 class SerialFlashFile
 {
 public:
-	SerialFlashFile() : address(0) {
-	}
+	constexpr SerialFlashFile() { }
 	operator bool() {
 		if (address > 0) return true;
 		return false;
@@ -123,10 +122,10 @@ public:
 	}
 protected:
 	friend class SerialFlashChip;
-	uint32_t address;  // where this file's data begins in the Flash, or zero
-	uint32_t length;   // total length of the data in the Flash chip
-	uint32_t offset; // current read/write offset in the file
-	uint16_t dirindex;
+	uint32_t address = 0;  // where this file's data begins in the Flash, or zero
+	uint32_t length = 0;   // total length of the data in the Flash chip
+	uint32_t offset = 0; // current read/write offset in the file
+	uint16_t dirindex = 0;
 };
 
 
