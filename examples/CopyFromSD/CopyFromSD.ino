@@ -31,7 +31,6 @@ void setup() {
     error("Unable to access SPI Flash chip");
   }
 
-  int count = 0;
   File rootdir = SD.open("/");
   while (1) {
     // open a file from the SD card
