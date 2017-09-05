@@ -91,9 +91,9 @@ void setup(){
   pinMode(13, OUTPUT);
   
   //Set up SPI
-  SPI.setMOSI(MOSI);
-  SPI.setMISO(MISO);
-  SPI.setSCK(SCK);
+  //SPI.setMOSI(MOSI);  // uncomment these if using the alternate pins
+  //SPI.setMISO(MISO);
+  //SPI.setSCK(SCK);
   SerialFlash.begin(CSPIN);
 
   //We start by formatting the flash...
