@@ -351,6 +351,9 @@ bool SerialFlashChip::begin(uint8_t pin)
 	pinMode(pin, OUTPUT);
 	CSRELEASE();
 	readID(id);
+	if ((id[0]==0 && id[1]==0 && id[2]==0) || (id[0]==255 && id[1]==255 && id[2]==255)) {
+		return false;
+	}
 	f = 0;
 	size = capacity(id);
 	if (size > 16777216) {

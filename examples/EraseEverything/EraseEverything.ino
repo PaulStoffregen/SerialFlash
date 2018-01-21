@@ -25,7 +25,12 @@ void setup() {
   while (!Serial && (millis() - startMillis < 10000)) ;
   delay(100);
 
-  SerialFlash.begin(FlashChipSelect);
+  if (!SerialFlash.begin(FlashChipSelect)) {
+    while (1) {
+      Serial.println("Unable to access SPI Flash chip");
+      delay(1000);
+    }
+  }
   unsigned char id[5];
   SerialFlash.readID(id);
   unsigned long size = SerialFlash.capacity(id);

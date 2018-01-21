@@ -45,7 +45,7 @@ void setup() {
   delay(100);
 
   Serial.println("Raw SerialFlash Hardware Test");
-  SerialFlash.begin(FlashChipSelect);
+  SerialFlash.begin(FlashChipSelect); // proceed even if begin() fails
 
   if (test()) {
     Serial.println();

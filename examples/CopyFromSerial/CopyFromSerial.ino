@@ -94,7 +94,13 @@ void setup(){
   //SPI.setMOSI(MOSI);  // uncomment these if using the alternate pins
   //SPI.setMISO(MISO);
   //SPI.setSCK(SCK);
-  SerialFlash.begin(CSPIN);
+  if (!SerialFlash.begin(CSPIN)) {
+    while (1) {
+      Serial.println("Unable to access SPI Flash chip");
+      delay(1000);
+    }
+  }
+
 
   //We start by formatting the flash...
   uint8_t id[5];
