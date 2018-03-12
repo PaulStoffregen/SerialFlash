@@ -1,6 +1,6 @@
 # SerialFlash
 
-SerialFlash provides low-latency, high performance access to SPI Flash memory with a filesystem-like interface.  Familiar file-based functions, similar to the SD library, are used to access data.
+SerialFlash provides low-latency, high performance access to SPI Flash memory with a filesystem-like interface for use with Arduino compatible boards.  Familiar file-based functions, similar to the SD library, are used to access data.
 
 In-progress file write and erase operations do NOT block read access on other files.  SerialFlash automatically allocates files with Flash page and sector awareness, and supports suspending in-progress write and erase operations, to minimize read latency even while the Flash memory is "busy" writing data.
 
