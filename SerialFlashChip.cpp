@@ -327,6 +327,7 @@ bool SerialFlashChip::ready()
 #define ID0_MICRON	0x20
 #define ID0_MACRONIX	0xC2
 #define ID0_SST		0xBF
+#define ID0_ADESTO      0x1F
 
 //#define FLAG_32BIT_ADDR	0x01	// larger than 16 MByte address
 //#define FLAG_STATUS_CMD70	0x02	// requires special busy flag check
@@ -452,6 +453,9 @@ uint32_t SerialFlashChip::capacity(const uint8_t *id)
 {
 	uint32_t n = 1048576; // unknown chips, default to 1 MByte
 
+	if (id[0] == ID0_ADESTO && id[1] == 0x89) {
+		n = 1048576*16; //16MB
+	} else
 	if (id[2] >= 16 && id[2] <= 31) {
 		n = 1ul << id[2];
 	} else
@@ -488,6 +492,7 @@ N25Q512A	4		64
 N25Q00AA	4		64
 S25FL512S			256
 SST26VF032	4
+AT25SF128A              32      64
 */
 
 
@@ -520,5 +525,6 @@ SST26VF032	4
 // SST25VF032		4	64	BF 25 4A
 // SST26VF064		8	?	BF 26 43
 // LE25U40CMC		1/2	64	62 06 13
+// Adesto AT25SF128A    16              1F 89 01
 
 SerialFlashChip SerialFlash;
