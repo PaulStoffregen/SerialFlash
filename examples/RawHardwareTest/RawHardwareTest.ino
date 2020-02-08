@@ -438,6 +438,12 @@ const char * id2chip(const unsigned char *id)
 			if (id[2] == 0x43) return "SST26VF064";
 		}
 	}
+  	if (id[0] == 0x1F) {
+    		// Adesto
+   		if (id[1] == 0x89) {
+      			if (id[2] == 0x01) return "AT25SF128A";
+    		}  
+  	} 	
 	return "(unknown chip)";
 }
 
