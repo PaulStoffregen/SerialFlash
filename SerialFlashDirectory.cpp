@@ -330,6 +330,14 @@ bool SerialFlashChip::create(const char *filename, uint32_t length, uint32_t ali
 	return true;
 }
 
+bool SerialFlashChip::createErasable(const char *filename, uint32_t length) {
+	uint32_t filesize = SerialFlash.eraseSectorSize();
+	while (length > filesize) {
+		filesize = filesize * 2;
+	}
+	return create(filename, length, filesize);
+}
+
 bool SerialFlashChip::readdir(char *filename, uint32_t strsize, uint32_t &filesize)
 {
 	uint32_t maxfiles, index, straddr;
@@ -383,7 +391,7 @@ void SerialFlashFile::erase()
 {
 	uint32_t i, blocksize;
 
-	blocksize = SerialFlash.blockSize();
+	blocksize = SerialFlash.eraseSectorSize();
 	if (address & (blocksize - 1)) return; // must begin on a block boundary
 	if (length & (blocksize - 1)) return;  // must be exact number of blocks
 	for (i=0; i < length; i += blocksize) {

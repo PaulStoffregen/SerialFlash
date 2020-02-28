@@ -46,6 +46,7 @@ static SPIClass& SPIPORT = SPI;
 #define FLAG_DIFF_SUSPEND	0x04	// uses 2 different suspend commands
 #define FLAG_MULTI_DIE		0x08	// multiple die, don't read cross 32M barrier
 #define FLAG_256K_BLOCKS	0x10	// has 256K erase blocks
+#define FLAG_SECTOR_ERASE   0x20	// has 4k erase sectors
 #define FLAG_DIE_MASK		0xC0	// top 2 bits count during multi-die erase
 
 void SerialFlashChip::wait(void)
@@ -288,6 +289,30 @@ void SerialFlashChip::eraseBlock(uint32_t addr)
 }
 
 
+void SerialFlashChip::eraseSector(uint32_t addr)
+{
+	uint8_t f = flags;
+	if (busy) wait();
+	SPIPORT.beginTransaction(SPICONFIG);
+	CSASSERT();
+	SPIPORT.transfer(0x06); // write enable command
+	CSRELEASE();
+	 delayMicroseconds(1);
+	CSASSERT();
+	if (f & FLAG_32BIT_ADDR) {
+		SPIPORT.transfer(0x20);
+		SPIPORT.transfer16(addr >> 16);
+		SPIPORT.transfer16(addr);
+	} else {
+		SPIPORT.transfer16(0x2000 | ((addr >> 16) & 255));
+		SPIPORT.transfer16(addr);
+	}
+	CSRELEASE();
+	SPIPORT.endTransaction();
+	busy = 2;
+}
+
+
 bool SerialFlashChip::ready()
 {
 	uint32_t status;
@@ -391,6 +416,9 @@ bool SerialFlashChip::begin(uint8_t pin)
 		// Micron requires busy checks with a different command
 		f |= FLAG_STATUS_CMD70; // TODO: all or just multi-die chips?
 	}
+	if (id[0] == ID0_WINBOND) {
+		f |= FLAG_SECTOR_ERASE;	
+	}
 	flags = f;
 	readID(id);
 	return true;
@@ -476,6 +504,14 @@ uint32_t SerialFlashChip::blockSize()
 	if (flags & FLAG_256K_BLOCKS) return 262144;
 	// everything else seems to have 64K sectors
 	return 65536;
+	asdf;
+}
+
+uint32_t SerialFlashChip::eraseSectorSize()
+{
+	if (flags & FLAG_SECTOR_ERASE) return 4096;
+	// everything else seems to have 64K sectors
+	return blockSize();
 }
 
 
