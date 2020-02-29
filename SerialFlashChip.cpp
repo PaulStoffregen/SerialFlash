@@ -504,7 +504,6 @@ uint32_t SerialFlashChip::blockSize()
 	if (flags & FLAG_256K_BLOCKS) return 262144;
 	// everything else seems to have 64K sectors
 	return 65536;
-	asdf;
 }
 
 uint32_t SerialFlashChip::eraseSectorSize()

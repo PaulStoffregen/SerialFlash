@@ -389,13 +389,19 @@ bool SerialFlashChip::readdir(char *filename, uint32_t strsize, uint32_t &filesi
 
 void SerialFlashFile::erase()
 {
-	uint32_t i, blocksize;
+	uint32_t i, blockSize, sectorSize;
 
-	blocksize = SerialFlash.eraseSectorSize();
-	if (address & (blocksize - 1)) return; // must begin on a block boundary
-	if (length & (blocksize - 1)) return;  // must be exact number of blocks
-	for (i=0; i < length; i += blocksize) {
-		SerialFlash.eraseBlock(address + i);
+	blockSize = SerialFlash.blockSize();
+	sectorSize = SerialFlash.eraseSectorSize();
+
+	if (address & (sectorSize - 1)) return; // must begin on a block boundary
+	if (length & (sectorSize - 1)) return;  // must be exact number of blocks
+	for (i=0; i < length; i += sectorSize) {
+		if (sectorSize < blockSize) {
+			SerialFlash.eraseSector(address + i);
+		} else {
+			SerialFlash.eraseBlock(address + i);
+		}
 	}
 }
 
