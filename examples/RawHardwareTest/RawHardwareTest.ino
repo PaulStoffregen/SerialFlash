@@ -79,7 +79,7 @@ bool test() {
   Serial.print(buf[1], HEX);
   Serial.print(" ");
   Serial.println(buf[2], HEX);
-  Serial.print("  Part Nummber: ");
+  Serial.print("  Part Number: ");
   Serial.println(id2chip(buf));
   Serial.print("  Memory Size:  ");
   chipsize = SerialFlash.capacity(buf);
