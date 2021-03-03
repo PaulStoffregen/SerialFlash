@@ -22,7 +22,7 @@ void setup() {
   unsigned long startMillis = millis();
   while (!Serial && (millis() - startMillis < 10000)) ;
   delay(100);
-  Serial.println("Copy all files from SD Card to SPI Flash");
+  Serial.println(F("Copy all files from SD Card to SPI Flash"));
 
   if (!SD.begin(SDchipSelect)) {
     error("Unable to access SD card");
@@ -39,31 +39,31 @@ void setup() {
     if (!f) break;
     const char *filename = f.name();
     Serial.print(filename);
-    Serial.print("    ");
+    Serial.print(F("    "));
     unsigned long length = f.size();
     Serial.println(length);
 
     // check if this file is already on the Flash chip
     if (SerialFlash.exists(filename)) {
-      Serial.println("  already exists on the Flash chip");
+      Serial.println(F("  already exists on the Flash chip"));
       SerialFlashFile ff = SerialFlash.open(filename);
       if (ff && ff.size() == f.size()) {
-        Serial.println("  size is the same, comparing data...");
+        Serial.println(F("  size is the same, comparing data..."));
         if (compareFiles(f, ff) == true) {
-          Serial.println("  files are identical :)");
+          Serial.println(F("  files are identical :)"));
           f.close();
           ff.close();
           continue;  // advance to next file
         } else {
-          Serial.println("  files are different");
+          Serial.println(F("  files are different"));
         }
       } else {
-        Serial.print("  size is different, ");
+        Serial.print(F("  size is different, "));
         Serial.print(ff.size());
-        Serial.println(" bytes");
+        Serial.println(F(" bytes"));
       }
       // delete the copy on the Flash chip, if different
-      Serial.println("  delete file from Flash chip");
+      Serial.println(F("  delete file from Flash chip"));
       SerialFlash.remove(filename);
     }
 
@@ -71,7 +71,7 @@ void setup() {
     if (SerialFlash.create(filename, length)) {
       SerialFlashFile ff = SerialFlash.open(filename);
       if (ff) {
-        Serial.print("  copying");
+        Serial.print(F("  copying"));
         // copy data loop
         unsigned long count = 0;
         unsigned char dotcount = 9;
@@ -90,16 +90,16 @@ void setup() {
         ff.close();
         if (dotcount > 0) Serial.println();
       } else {
-        Serial.println("  error opening freshly created file!");
+        Serial.println(F("  error opening freshly created file!"));
       }
     } else {
-      Serial.println("  unable to create file");
+      Serial.println(F("  unable to create file"));
     }
     f.close();
   }
   rootdir.close();
   delay(10);
-  Serial.println("Finished All Files");
+  Serial.println(F("Finished All Files"));
 }
 
 

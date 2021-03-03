@@ -19,7 +19,7 @@ void setup() {
   // wait for Arduino Serial Monitor
   while (!Serial) ;
   delay(100);
-  Serial.println("All Files on SPI Flash chip:");
+  Serial.println(F("All Files on SPI Flash chip:"));
 
   if (!SerialFlash.begin(FlashChipSelect)) {
     error("Unable to access SPI Flash chip");
@@ -31,12 +31,12 @@ void setup() {
     uint32_t filesize;
 
     if (SerialFlash.readdir(filename, sizeof(filename), filesize)) {
-      Serial.print("  ");
+      Serial.print(F("  "));
       Serial.print(filename);
       spaces(20 - strlen(filename));
-      Serial.print("  ");
+      Serial.print(F("  "));
       Serial.print(filesize);
-      Serial.print(" bytes");
+      Serial.print(F(" bytes"));
       Serial.println();
     } else {
       break; // no more files
@@ -46,7 +46,7 @@ void setup() {
 
 void spaces(int num) {
   for (int i=0; i < num; i++) {
-    Serial.print(" ");
+    Serial.print(' ');
   }
 }
 

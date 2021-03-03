@@ -44,21 +44,21 @@ void setup() {
   while (!Serial) ;
   delay(100);
 
-  Serial.println("Raw SerialFlash Hardware Test");
+  Serial.println(F("Raw SerialFlash Hardware Test"));
   SerialFlash.begin(FlashChipSelect); // proceed even if begin() fails
 
   if (test()) {
     Serial.println();
-    Serial.println("All Tests Passed  :-)");
+    Serial.println(F("All Tests Passed  :-)"));
     Serial.println();
-    Serial.println("Test data was written to your chip.  You must run");
-    Serial.println("EraseEverything before using this chip for files.");
+    Serial.println(F("Test data was written to your chip.  You must run"));
+    Serial.println(F("EraseEverything before using this chip for files."));
   } else {
     Serial.println();
-    Serial.println("Tests Failed  :{");
+    Serial.println(F("Tests Failed  :{"));
     Serial.println();
-    Serial.println("The flash chip may be left in an improper state.");
-    Serial.println("You might need to power cycle to return to normal.");
+    Serial.println(F("The flash chip may be left in an improper state."));
+    Serial.println(F("You might need to power cycle to return to normal."));
   }
 }
 
@@ -71,31 +71,31 @@ bool test() {
 
   // Read the chip identification
   Serial.println();
-  Serial.println("Read Chip Identification:");
+  Serial.println(F("Read Chip Identification:"));
   SerialFlash.readID(buf);
-  Serial.print("  JEDEC ID:     ");
+  Serial.print(F("  JEDEC ID:     "));
   Serial.print(buf[0], HEX);
-  Serial.print(" ");
+  Serial.print(' ');
   Serial.print(buf[1], HEX);
-  Serial.print(" ");
+  Serial.print(' ');
   Serial.println(buf[2], HEX);
-  Serial.print("  Part Number: ");
+  Serial.print(F("  Part Number: "));
   Serial.println(id2chip(buf));
-  Serial.print("  Memory Size:  ");
+  Serial.print(F("  Memory Size:  "));
   chipsize = SerialFlash.capacity(buf);
   Serial.print(chipsize);
-  Serial.println(" bytes");
+  Serial.println(F(" bytes"));
   if (chipsize == 0) return false;
-  Serial.print("  Block Size:   ");
+  Serial.print(F("  Block Size:   "));
   blocksize = SerialFlash.blockSize();
   Serial.print(blocksize);
-  Serial.println(" bytes");
+  Serial.println(F(" bytes"));
 
 
   // Read the entire chip.  Every test location must be
   // erased, or have a previously tested signature
   Serial.println();
-  Serial.println("Reading Chip...");
+  Serial.println(F("Reading Chip..."));
   memset(buf, 0, sizeof(buf));
   memset(sig, 0, sizeof(sig));
   memset(buf2, 0, sizeof(buf2));
@@ -111,12 +111,12 @@ bool test() {
     create_signature(address, sig);
     if (is_erased(buf, 8) == false) {
       if (equal_signatures(buf, sig) == false) {
-        Serial.print("  Previous data found at address ");
+        Serial.print(F("  Previous data found at address "));
         Serial.println(address);
-        Serial.println("  You must fully erase the chip before this test");
-        Serial.print("  found this: ");
+        Serial.println(F("  You must fully erase the chip before this test"));
+        Serial.print(F("  found this: "));
         printbuf(buf, 8);
-        Serial.print("     correct: ");
+        Serial.print(F("     correct: "));
         printbuf(sig, 8);
         return false;
       }
@@ -136,9 +136,9 @@ bool test() {
   // Write any signatures that were blank on the original check
   if (count > 0) {
     Serial.println();
-    Serial.print("Writing ");
+    Serial.print(F("Writing "));
     Serial.print(count);
-    Serial.println(" signatures");
+    Serial.println(F(" signatures"));
     memset(buf, 0, sizeof(buf));
     memset(sig, 0, sizeof(sig));
     memset(buf2, 0, sizeof(buf2));
@@ -154,11 +154,11 @@ bool test() {
         while (!SerialFlash.ready()) ; // wait
         SerialFlash.read(address, buf, 8);
         if (equal_signatures(buf, sig) == false) {
-          Serial.print("  error writing signature at ");
+          Serial.print(F("  error writing signature at "));
           Serial.println(address);
-          Serial.print("  Read this: ");
+          Serial.print(F("  Read this: "));
           printbuf(buf, 8);
-          Serial.print("  Expected:  ");
+          Serial.print(F("  Expected:  "));
           printbuf(sig, 8);
           return false;
         }
@@ -172,14 +172,14 @@ bool test() {
       }
     }
   } else {
-    Serial.println("  all signatures present from prior tests");
+    Serial.println(F("  all signatures present from prior tests"));
   }
 
 
   // Read all the signatures again, just to be sure
   // checks prior writing didn't corrupt any other data
   Serial.println();
-  Serial.println("Double Checking All Signatures:");
+  Serial.println(F("Double Checking All Signatures:"));
   memset(buf, 0, sizeof(buf));
   memset(sig, 0, sizeof(sig));
   memset(buf2, 0, sizeof(buf2));
@@ -190,11 +190,11 @@ bool test() {
     SerialFlash.read(address, buf, 8);
     create_signature(address, sig);
     if (equal_signatures(buf, sig) == false) {
-      Serial.print("  error in signature at ");
+      Serial.print(F("  error in signature at "));
       Serial.println(address);
-      Serial.print("  Read this: ");
+      Serial.print(F("  Read this: "));
       printbuf(buf, 8);
-      Serial.print("  Expected:  ");
+      Serial.print(F("  Expected:  "));
       printbuf(sig, 8);
       return false;
     }
@@ -207,15 +207,15 @@ bool test() {
       first = true;
     }
   }
-  Serial.print("  all ");
+  Serial.print(F("  all "));
   Serial.print(count);
-  Serial.println(" signatures read ok");
+  Serial.println(F(" signatures read ok"));
 
 
   // Read pairs of adjacent signatures
   // check read works across boundaries
   Serial.println();
-  Serial.println("Checking Signature Pairs");
+  Serial.println(F("Checking Signature Pairs"));
   memset(buf, 0, sizeof(buf));
   memset(sig, 0, sizeof(sig));
   memset(buf2, 0, sizeof(buf2));
@@ -227,25 +227,25 @@ bool test() {
     create_signature(address, sig);
     create_signature(address + 8, sig + 8);
     if (memcmp(buf, sig, 16) != 0) {
-      Serial.print("  error in signature pair at ");
+      Serial.print(F("  error in signature pair at "));
       Serial.println(address);
-      Serial.print("  Read this: ");
+      Serial.print(F("  Read this: "));
       printbuf(buf, 16);
-      Serial.print("  Expected:  ");
+      Serial.print(F("  Expected:  "));
       printbuf(sig, 16);
       return false;
     }
     count = count + 1;
     address = address + testIncrement;
   }
-  Serial.print("  all ");
+  Serial.print(F("  all "));
   Serial.print(count);
-  Serial.println(" signature pairs read ok");
+  Serial.println(F(" signature pairs read ok"));
 
 
   // Write data and read while write in progress
   Serial.println();
-  Serial.println("Checking Read-While-Write (Program Suspend)");
+  Serial.println(F("Checking Read-While-Write (Program Suspend)"));
   address = 256;
   while (address < chipsize) { // find a blank space
     SerialFlash.read(address, buf, 256);
@@ -253,55 +253,55 @@ bool test() {
     address = address + 256;
   }
   if (address >= chipsize) {
-    Serial.println("  error, unable to find any blank space!");
+    Serial.println(F("  error, unable to find any blank space!"));
     return false;
   }
   for (int i=0; i < 256; i += 8) {
     create_signature(address + i, sig + i);
   }
-  Serial.print("  write 256 bytes at ");
+  Serial.print(F("  write 256 bytes at "));
   Serial.println(address);
   Serial.flush();
   SerialFlash.write(address, sig, 256);
   usec = micros();
   if (SerialFlash.ready()) {
-    Serial.println("  error, chip did not become busy after write");
+    Serial.println(F("  error, chip did not become busy after write"));
     return false;
   }
   SerialFlash.read(0, buf2, 8); // read while busy writing
   while (!SerialFlash.ready()) ; // wait
   usec = micros() - usec;
-  Serial.print("  write time was ");
+  Serial.print(F("  write time was "));
   Serial.print(usec);
-  Serial.println(" microseconds.");
+  Serial.println(F(" microseconds."));
   SerialFlash.read(address, buf, 256);
   if (memcmp(buf, sig, 256) != 0) {
-    Serial.println("  error writing to flash");
-    Serial.print("  Read this: ");
+    Serial.println(F("  error writing to flash"));
+    Serial.print(F("  Read this: "));
     printbuf(buf, 256);
-    Serial.print("  Expected:  ");
+    Serial.print(F("  Expected:  "));
     printbuf(sig, 256);
     return false;
   }
   create_signature(0, sig);
   if (memcmp(buf2, sig, 8) != 0) {
-    Serial.println("  error, incorrect read while writing");
-    Serial.print("  Read this: ");
+    Serial.println(F("  error, incorrect read while writing"));
+    Serial.print(F("  Read this: "));
     printbuf(buf2, 256);
-    Serial.print("  Expected:  ");
+    Serial.print(F("  Expected:  "));
     printbuf(sig, 256);
     return false;
   }
-  Serial.print("  read-while-writing: ");
+  Serial.print(F("  read-while-writing: "));
   printbuf(buf2, 8);
-  Serial.println("  test passed, good read while writing");
+  Serial.println(F("  test passed, good read while writing"));
 
 
 
   // Erase a block and read while erase in progress
   if (chipsize >= 262144 + blocksize + testIncrement) {
     Serial.println();
-    Serial.println("Checking Read-While-Erase (Erase Suspend)");
+    Serial.println(F("Checking Read-While-Erase (Erase Suspend)"));
     memset(buf, 0, sizeof(buf));
     memset(sig, 0, sizeof(sig));
     memset(buf2, 0, sizeof(buf2));
@@ -309,15 +309,15 @@ bool test() {
     usec = micros();
     delayMicroseconds(50);
     if (SerialFlash.ready()) {
-      Serial.println("  error, chip did not become busy after erase");
+      Serial.println(F("  error, chip did not become busy after erase"));
       return false;
     }
     SerialFlash.read(0, buf2, 8); // read while busy writing
     while (!SerialFlash.ready()) ; // wait
     usec = micros() - usec;
-    Serial.print("  erase time was ");
+    Serial.print(F("  erase time was "));
     Serial.print(usec);
-    Serial.println(" microseconds.");
+    Serial.println(F(" microseconds."));
     // read all signatures, check ones in this block got
     // erased, and all the others are still intact
     address = 0;
@@ -326,20 +326,20 @@ bool test() {
       SerialFlash.read(address, buf, 8);
       if (address >= 262144 && address < 262144 + blocksize) {
         if (is_erased(buf, 8) == false) {
-          Serial.print("  error in erasing at ");
+          Serial.print(F("  error in erasing at "));
           Serial.println(address);
-          Serial.print("  Read this: ");
+          Serial.print(F("  Read this: "));
           printbuf(buf, 8);
           return false;
         }
       } else {
         create_signature(address, sig);
         if (equal_signatures(buf, sig) == false) {
-          Serial.print("  error in signature at ");
+          Serial.print(F("  error in signature at "));
           Serial.println(address);
-          Serial.print("  Read this: ");
+          Serial.print(F("  Read this: "));
           printbuf(buf, 8);
-          Serial.print("  Expected:  ");
+          Serial.print(F("  Expected:  "));
           printbuf(sig, 8);
           return false;
         }
@@ -352,25 +352,25 @@ bool test() {
         first = true;
       }
     }
-    Serial.print("  erase correctly erased ");
+    Serial.print(F("  erase correctly erased "));
     Serial.print(blocksize);
-    Serial.println(" bytes");
+    Serial.println(F(" bytes"));
     // now check if the data we read during erase is good
     create_signature(0, sig);
     if (memcmp(buf2, sig, 8) != 0) {
-      Serial.println("  error, incorrect read while erasing");
-      Serial.print("  Read this: ");
+      Serial.println(F("  error, incorrect read while erasing"));
+      Serial.print(F("  Read this: "));
       printbuf(buf2, 256);
-      Serial.print("  Expected:  ");
+      Serial.print(F("  Expected:  "));
       printbuf(sig, 256);
       return false;
     }
-    Serial.print("  read-while-erasing: ");
+    Serial.print(F("  read-while-erasing: "));
     printbuf(buf2, 8);
-    Serial.println("  test passed, good read while erasing");
+    Serial.println(F("  test passed, good read while erasing"));
 
   } else {
-    Serial.println("Skip Read-While-Erase, this chip is too small");
+    Serial.println(F("Skip Read-While-Erase, this chip is too small"));
   }
 
 
@@ -449,10 +449,10 @@ const char * id2chip(const unsigned char *id)
 
 void print_signature(const unsigned char *data)
 {
-	Serial.print("data=");
+	Serial.print(F("data="));
 	for (unsigned char i=0; i < 8; i++) {
 		Serial.print(data[i]);
-		Serial.print(" ");
+		Serial.print(' ');
 	}
 	Serial.println();
 }
@@ -500,7 +500,7 @@ void printbuf(const void *buf, uint32_t len)
     Serial.print(b >> 4, HEX);
     Serial.print(b & 15, HEX);
     //Serial.printf("%02X", *p++);
-    Serial.print(" ");
+    Serial.print(' ');
   } while (--len > 0);
   Serial.println();
 }

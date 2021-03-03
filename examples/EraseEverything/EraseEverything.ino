@@ -27,7 +27,7 @@ void setup() {
 
   if (!SerialFlash.begin(FlashChipSelect)) {
     while (1) {
-      Serial.println("Unable to access SPI Flash chip");
+      Serial.println(F("Unable to access SPI Flash chip"));
       delay(1000);
     }
   }
@@ -36,16 +36,16 @@ void setup() {
   unsigned long size = SerialFlash.capacity(id);
 
   if (size > 0) {
-    Serial.print("Flash Memory has ");
+    Serial.print(F("Flash Memory has "));
     Serial.print(size);
-    Serial.println(" bytes.");
-    Serial.println("Erasing ALL Flash Memory:");
+    Serial.println(F(" bytes."));
+    Serial.println(F("Erasing ALL Flash Memory:"));
     // Estimate the (lengthy) wait time.
-    Serial.print("  estimated wait: ");
+    Serial.print(F("  estimated wait: "));
     int seconds = (float)size / eraseBytesPerSecond(id) + 0.5;
     Serial.print(seconds);
-    Serial.println(" seconds.");
-    Serial.println("  Yes, full chip erase is SLOW!");
+    Serial.println(F(" seconds."));
+    Serial.println(F("  Yes, full chip erase is SLOW!"));
     SerialFlash.eraseAll();
     unsigned long dotMillis = millis();
     unsigned char dotcount = 0;
@@ -61,11 +61,11 @@ void setup() {
       }
     }
     if (dotcount > 0) Serial.println();
-    Serial.println("Erase completed");
+    Serial.println(F("Erase completed"));
     unsigned long elapsed = millis() - startMillis;
-    Serial.print("  actual wait: ");
+    Serial.print(F("  actual wait: "));
     Serial.print(elapsed / 1000ul);
-    Serial.println(" seconds.");
+    Serial.println(F(" seconds."));
   }
 }
 

@@ -37,7 +37,7 @@ void setup() {
   // Start SerialFlash
   if (!SerialFlash.begin(FLASH_CHIP_SELECT)) {
     while (1) {
-      Serial.println ("Cannot access SPI Flash chip");
+      Serial.println(F("Cannot access SPI Flash chip"));
       delay (1000);
     }
   }
@@ -54,7 +54,7 @@ void setup() {
 void playFile(const char *filename)
 {
   SerialFlashFile ff = SerialFlash.open(filename);
-  Serial.print("Playing file: ");
+  Serial.print(F("Playing file: "));
   Serial.println(filename);
 
   uint32_t sz = ff.size();

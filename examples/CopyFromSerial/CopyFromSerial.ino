@@ -96,7 +96,7 @@ void setup(){
   //SPI.setSCK(SCK);
   if (!SerialFlash.begin(CSPIN)) {
     while (1) {
-      Serial.println("Unable to access SPI Flash chip");
+      Serial.println(F("Unable to access SPI Flash chip"));
       delay(1000);
     }
   }
@@ -146,7 +146,7 @@ void setup(){
   //We assume the serial receive part is finished when we have not received something for 3 seconds
   while(Serial.available() || lastReceiveTime + 3000 > millis()){
     uint16_t available = Serial.readBytes(usbBuffer, USB_BUFFER_SIZE);
-    if (available){
+    if (available) {
       lastReceiveTime = millis();
     }
 
