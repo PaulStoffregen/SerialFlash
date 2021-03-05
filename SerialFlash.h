@@ -40,6 +40,7 @@ public:
 	static bool begin(uint8_t pin = 6);
 	static uint32_t capacity(const uint8_t *id);
 	static uint32_t blockSize();
+	static uint32_t eraseSectorSize();
 	static void sleep();
 	static void wakeup();
 	static void readID(uint8_t *buf);
@@ -50,12 +51,11 @@ public:
 	static void write(uint32_t addr, const void *buf, uint32_t len);
 	static void eraseAll();
 	static void eraseBlock(uint32_t addr);
+	static void eraseSector(uint32_t addr);
 
 	static SerialFlashFile open(const char *filename);
 	static bool create(const char *filename, uint32_t length, uint32_t align = 0);
-	static bool createErasable(const char *filename, uint32_t length) {
-		return create(filename, length, blockSize());
-	}
+	static bool createErasable(const char *filename, uint32_t length);
 	static bool exists(const char *filename);
 	static bool remove(const char *filename);
 	static bool remove(SerialFlashFile &file);
