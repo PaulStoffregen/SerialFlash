@@ -52,12 +52,25 @@ public:
 	static void eraseBlock(uint32_t addr);
 
 	static SerialFlashFile open(const char *filename);
+	static SerialFlashFile open(const String& filename);
 	static bool create(const char *filename, uint32_t length, uint32_t align = 0);
+	static bool create(const String& filename, uint32_t length, uint32_t align = 0) {
+		return create(filename.c_str(), length, align);
+	}
 	static bool createErasable(const char *filename, uint32_t length) {
 		return create(filename, length, blockSize());
 	}
+	static bool createErasable(const String& filename, uint32_t length) {
+		return createErasable(filename.c_str(), length);
+	}
 	static bool exists(const char *filename);
+	static bool exists(const String& filename) {
+		return exists(filename.c_str());
+	}
 	static bool remove(const char *filename);
+	static bool remove(const String& filename) {
+		return remove(filename.c_str());
+	}
 	static bool remove(SerialFlashFile &file);
 	static void opendir() { dirindex = 0; }
 	static bool readdir(char *filename, uint32_t strsize, uint32_t &filesize);
