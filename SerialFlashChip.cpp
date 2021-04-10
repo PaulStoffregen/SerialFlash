@@ -264,6 +264,23 @@ void SerialFlashChip::eraseAll()
 	busy = 3;
 }
 
+void SerialFlashChip::unprotectAll()
+{
+	SPIPORT.beginTransaction(SPICONFIG);
+	CSASSERT();
+	// write enable command
+	SPIPORT.transfer(0x06);
+	CSRELEASE();
+	delayMicroseconds(1);
+	CSASSERT();
+	// Write status register
+	SPIPORT.transfer(0x01);
+	SPIPORT.transfer(0x02); //WEL=1, rest of the bits are 0
+	CSRELEASE();
+	SPIPORT.endTransaction();
+	wait();
+}
+
 void SerialFlashChip::eraseBlock(uint32_t addr)
 {
 	uint8_t f = flags;
