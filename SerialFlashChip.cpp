@@ -35,6 +35,9 @@
 uint16_t SerialFlashChip::dirindex = 0;
 uint8_t SerialFlashChip::flags = 0;
 uint8_t SerialFlashChip::busy = 0;
+bool SerialFlashChip::writing = false;
+uint8_t SerialFlashChip::lastErr = SF_OK;
+uint32_t SerialFlashChip::totalCapacity = 0;
 
 static volatile IO_REG_TYPE *cspin_basereg;
 static IO_REG_TYPE cspin_bitmask;
@@ -51,6 +54,7 @@ static SPIClass& SPIPORT = SPI;
 void SerialFlashChip::wait(void)
 {
 	uint32_t status;
+	uint8_t safety = 16; //prevent busy loop
 	//Serial.print("wait-");
 	while (1) {
 		SPIPORT.beginTransaction(SPICONFIG);
@@ -72,6 +76,11 @@ void SerialFlashChip::wait(void)
 			SPIPORT.endTransaction();
 			//Serial.printf("b=%02x.", status & 0xFF);
 			if (!(status & 1)) break;
+		}
+		safety--;
+		if (0 == safety) {
+			yield(); //prevent watchdog reset
+			safety = 16;
 		}
 	}
 	busy = 0;
@@ -410,6 +419,7 @@ bool SerialFlashChip::begin(uint8_t pin)
 	}
 	flags = f;
 	readID(id);
+	totalCapacity = size;
 	return true;
 }
 
