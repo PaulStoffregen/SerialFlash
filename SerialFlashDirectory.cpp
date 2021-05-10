@@ -53,6 +53,8 @@ up to 262140 bytes for string data.
 An array of 16 bit filename hashes allows for quick linear search
 for potentially matching filenames.  A hash value of 0xFFFF indicates
 no file is allocated for the remainder of the array.
+When a file is deleted the hash value is zeored and stored. Hash 0
+is still treated as valid, though it is an abandoned hash.
 
 Following the hashes, and array of 10 byte structs give the location
 and length of the file's actual data, and the offset of its filename
@@ -67,6 +69,7 @@ Strings are null terminated.  The remainder of the chip is file data.
 
 static uint32_t check_signature(void)
 {
+	static uint8_t eraseRepeat = 0;
 	uint32_t sig[2];
 
 	SerialFlash.read(0, sig, 8);
@@ -79,6 +82,12 @@ static uint32_t check_signature(void)
 		while (!SerialFlash.ready()) ; // TODO: timeout
 		SerialFlash.read(0, sig, 8);
 		if (sig[0] == 0xFA96554C) return sig[1];
+	} else if (eraseRepeat == 0) {
+		//unknown contents - unprotect and erase the chip
+		eraseRepeat = 1;
+		SerialFlash.unprotectAll();
+		SerialFlash.eraseAll();
+		return check_signature();
 	}
 	return 0;
 }
@@ -125,7 +134,7 @@ void pbuf(const void *buf, uint32_t len)
 }
 #endif
 
-SerialFlashFile SerialFlashChip::open(const char *filename)
+SerialFlashFile SerialFlashChip::open(const char *filename, char mode)
 {
 	uint32_t maxfiles, straddr;
 	uint16_t hash, hashtable[8];
@@ -133,6 +142,15 @@ SerialFlashFile SerialFlashChip::open(const char *filename)
 	uint32_t buf[3];
 	SerialFlashFile file;
 
+	if (mode == 'w') {
+		file = open(filename, 'r');
+		// check the file was not already pre-created
+		if (!file) {
+			// create an auto growing file (writing check is inside createErasable())
+			return SerialFlashChip::createErasable(filename, 0);
+		}
+		return file;
+	}
 	maxfiles = check_signature();
 	 //Serial.printf("sig: %08X\n", maxfiles);
 	if (!maxfiles) return file;
@@ -142,9 +160,12 @@ SerialFlashFile SerialFlashChip::open(const char *filename)
 	while (index < maxfiles) {
 		n = 8;
 		if (n > maxfiles - index) n = maxfiles - index;
+		//read next 8 (or less) filename hashes
 		SerialFlash.read(8 + index * 2, hashtable, n * 2);
 		 //Serial.printf(" read %u: ", 8 + index * 2);
 		 //pbuf(hashtable, n * 2);
+
+		// go through filename hashes hand try to find a match
 		for (i=0; i < n; i++) {
 			if (hashtable[i] == hash) {
 				 //Serial.printf("  hash match at index %u\n", index+i);
@@ -164,6 +185,9 @@ SerialFlashFile SerialFlashChip::open(const char *filename)
 					file.length = buf[1];
 					file.offset = 0;
 					file.dirindex = index + i;
+					if (file.length == 0xFFFFFFFF) {
+						file.length = 0;
+					}
 					return file;
 				}
 			} else if (hashtable[i] == 0xFFFF) {
@@ -253,25 +277,30 @@ static uint32_t string_length(uint32_t addr)
 //  } fileinfo[maxfiles]
 //  char strings[stringssize]
 
-bool SerialFlashChip::create(const char *filename, uint32_t length, uint32_t align)
+SerialFlashFile SerialFlashChip::create(const char *filename, uint32_t length, uint32_t align)
 {
 	uint32_t maxfiles, stringsize;
 	uint32_t index, buf[3];
 	uint32_t address, straddr, len;
 	SerialFlashFile file;
 
+	// check we are writing an auto-growing file
+	if (writing) {
+		SerialFlashChip::lastErr = SF_ERROR_WRITING;
+		return file;
+	}
 	// check if the file already exists
-	if (exists(filename)) return false;
+	if (exists(filename)) return file;
 
 	// first, get the filesystem parameters
 	maxfiles = check_signature();
-	if (!maxfiles) return false;
+	if (!maxfiles) return file;
 	stringsize = (maxfiles & 0xFFFF0000) >> 14;
 	maxfiles &= 0xFFFF;
 
 	// find the first unused slot for this file
 	index = find_first_unallocated_file_index(maxfiles);
-	if (index >= maxfiles) return false;
+	if (index >= maxfiles) return file;
 	 //Serial.printf("index = %u\n", index);
 	// compute where to store the filename and actual data
 	straddr = 8 + maxfiles * 12;
@@ -294,9 +323,11 @@ bool SerialFlashChip::create(const char *filename, uint32_t length, uint32_t ali
 		address /= align;
 		address *= align;
 		 //Serial.printf("align address = %u\n", address);
-		length += align - 1;
-		length /= align;
-		length *= align;
+		if (length > 0) {
+			length += align - 1;
+			length /= align;
+			length *= align;
+		}
 		 //Serial.printf("align length = %u\n", length);
 	} else {
 		// always align every file to a page boundary
@@ -312,11 +343,11 @@ bool SerialFlashChip::create(const char *filename, uint32_t length, uint32_t ali
 	// TODO: check for enough string space for filename
 	uint8_t id[5];
 	SerialFlash.readID(id);
-	if (address + length > SerialFlash.capacity(id)) return false;
+	if (address + length > SerialFlash.capacity(id)) return file;
 
 	SerialFlash.write(straddr, filename, len+1);
 	buf[0] = address;
-	buf[1] = length;
+	buf[1] = (length == 0) ? 0xFFFFFFFF : length; // length 0 - auto growing file (FF can be later overwitten)
 	buf[2] = (straddr - (8 + maxfiles * 12)) / 4;
 	SerialFlash.write(8 + maxfiles * 2 + index * 10, buf, 10);
 	 //Serial.printf("  write %u: ", 8 + maxfiles * 2 + index * 10);
@@ -327,7 +358,14 @@ bool SerialFlashChip::create(const char *filename, uint32_t length, uint32_t ali
 	 //Serial.printf("hash = %04X\n", buf[0]);
 	SerialFlash.write(8 + index * 2, buf, 2);
 	while (!SerialFlash.ready()) ;  // TODO: timeout
-	return true;
+	if (length == 0) {
+		writing = true;
+	}
+	file.address = address;
+	file.length = length;
+	file.offset = 0;
+	file.dirindex = index;
+	return file;
 }
 
 bool SerialFlashChip::readdir(char *filename, uint32_t strsize, uint32_t &filesize)
@@ -378,16 +416,58 @@ bool SerialFlashChip::readdir(char *filename, uint32_t strsize, uint32_t &filesi
 	return true;
 }
 
+SerialFlashFile SerialFlashChip::createErasable(const char *filename, uint32_t length) {
+	return create(filename, length, blockSize());
+}
+
 
 void SerialFlashFile::erase()
 {
 	uint32_t i, blocksize;
 
+	if (!address) {
+		SerialFlashChip::lastErr = SF_ERROR_CLOSED;
+		return;
+	}
 	blocksize = SerialFlash.blockSize();
 	if (address & (blocksize - 1)) return; // must begin on a block boundary
 	if (length & (blocksize - 1)) return;  // must be exact number of blocks
 	for (i=0; i < length; i += blocksize) {
 		SerialFlash.eraseBlock(address + i);
 	}
+	SerialFlashChip::lastErr = SF_OK;
 }
 
+void SerialFlashFile::close()
+{
+	if (!address) {
+		SerialFlashChip::lastErr = SF_ERROR_CLOSED;
+		return;
+	}
+	
+	// store current size of auto-growing file
+	if (!length) {
+		uint32_t maxfiles;
+	
+		maxfiles = check_signature();
+		if (!maxfiles) {
+			SerialFlashChip::lastErr = SF_ERROR_FAILED;
+			return;
+		}
+		maxfiles &= 0xFFFF;
+		//Serial.printf("close: dirindex=%i maxfiles=%i size=%i\n", dirindex, maxfiles, offset);
+		
+		// overwrite the length (second 4byte integer), which should be 0xFFFFFFFF, 
+		// therefore could be overwritten.
+		SerialFlash.write(8 + (maxfiles * 2) + ((dirindex) * 10) + 4, &offset, 4);
+		
+		// indicate the autogrowing file is no longer written
+		SerialFlashChip::writing = false;
+	}
+	
+	//invalidate the file
+	address = 0;
+	offset = 0;
+	
+	SerialFlashChip::lastErr = SF_OK;
+}
