@@ -398,6 +398,42 @@ bool SerialFlashChip::begin(uint8_t pin)
 
 // chips tested: https://github.com/PaulStoffregen/SerialFlash/pull/12#issuecomment-169596992
 //
+/*
+7.2.43 Enable Reset (66h) and Reset (99h)
+Because of the small package and the limitation on the number of pins, the W25Q64FV provide a
+software Reset instruction instead of a dedicated RESET pin. Once the Reset instruction is accepted, any
+on-going internal operations will be terminated and the device will return to its default power-on state and
+lose all the current volatile settings, such as Volatile Status Register bits, Write Enable Latch (WEL)
+status, Program/Erase Suspend status, Read parameter setting (P7-P0), Continuous Read Mode bit
+setting (M7-M0) and Wrap Bit setting (W6-W4).
+“Enable Reset (66h)” and “Reset (99h)” instructions can be issued in either SPI mode or QPI mode. To
+avoid accidental reset, both instructions must be issued in sequence. Any other commands other than
+“Reset (99h)” after the “Enable Reset (66h)” command will disable the “Reset Enable” state. A new
+sequence of “Enable Reset (66h)” and “Reset (99h)” is needed to reset the device. Once the Reset
+command is accepted by the device, the device will take approximately tRST=30us to reset. During this
+period, no command will be accepted.
+Data corruption may happen if there is an on-going or suspended internal Erase or Program operation
+when Reset command sequence is accepted by the device. It is recommended to check the BUSY bit and
+the SUS bit in Status Register before issuing the Reset command sequence.
+*/
+void SerialFlashChip::reset()
+{
+	if (busy) wait();
+  busy = 1;
+	SPIPORT.beginTransaction(SPICONFIG);
+	CSASSERT();
+	SPIPORT.transfer(0x66); // Enable reset command
+	CSRELEASE();
+
+//	SPIPORT.beginTransaction(SPICONFIG);
+	CSASSERT();
+	SPIPORT.transfer(0x99); // Reset command
+	CSRELEASE();
+  delayMicroseconds(30);
+  busy = 0;
+}
+
+
 void SerialFlashChip::sleep()
 {
 	if (busy) wait();
