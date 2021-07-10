@@ -7,3 +7,4 @@ ready	KEYWORD2
 create	KEYWORD2
 createWritable	KEYWORD2
 getAddress	KEYWORD2
+reset	KEYWORD2
