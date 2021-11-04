@@ -466,6 +466,12 @@ uint32_t SerialFlashChip::capacity(const uint8_t *id)
 		(id[0]==255 && id[1]==255 && id[2]==255)) {
 		n = 0;
 	}
+	
+	} else
+	if (id[0]==239 && id[1]==112 && id[2]==56) {
+		n = 1ul << 26;
+	}
+	
 	//Serial.printf("capacity %lu\n", n);
 	return n;
 }
