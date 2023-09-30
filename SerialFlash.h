@@ -38,6 +38,7 @@ class SerialFlashChip
 public:
 	static bool begin(SPIClass& device, uint8_t pin = 6);
 	static bool begin(uint8_t pin = 6);
+	static void changeSettings(SPISettings& settings);
 	static uint32_t capacity(const uint8_t *id);
 	static uint32_t blockSize();
 	static void sleep();

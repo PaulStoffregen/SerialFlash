@@ -30,7 +30,7 @@
 
 #define CSASSERT()  DIRECT_WRITE_LOW(cspin_basereg, cspin_bitmask)
 #define CSRELEASE() DIRECT_WRITE_HIGH(cspin_basereg, cspin_bitmask)
-#define SPICONFIG   SPISettings(50000000, MSBFIRST, SPI_MODE0)
+static SPISettings SPICONFIG(50000000, MSBFIRST, SPI_MODE0);
 
 uint16_t SerialFlashChip::dirindex = 0;
 uint8_t SerialFlashChip::flags = 0;
@@ -394,6 +394,11 @@ bool SerialFlashChip::begin(uint8_t pin)
 	flags = f;
 	readID(id);
 	return true;
+}
+
+void SerialFlashChip::changeSettings(SPISettings& settings)
+{
+	SPICONFIG = settings;
 }
 
 // chips tested: https://github.com/PaulStoffregen/SerialFlash/pull/12#issuecomment-169596992
