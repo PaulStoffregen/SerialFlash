@@ -264,6 +264,29 @@ void SerialFlashChip::eraseAll()
 	busy = 3;
 }
 
+void SerialFlashChip::eraseSector(uint32_t addr)
+{
+	uint8_t f = flags;
+	if (busy) wait();
+	SPIPORT->beginTransaction(SPICONFIG);
+	CSASSERT();
+	SPIPORT->transfer(0x06); // write enable command
+	CSRELEASE();
+	 delayMicroseconds(1);
+	CSASSERT();
+	if (f & FLAG_32BIT_ADDR) {
+		SPIPORT->transfer(0x20);
+		SPIPORT->transfer16(addr >> 16);
+		SPIPORT->transfer16(addr);
+	} else {
+		SPIPORT->transfer16(0x2000 | ((addr >> 16) & 255));
+		SPIPORT->transfer16(addr);
+	}
+	CSRELEASE();
+	SPIPORT->endTransaction();
+	busy = 2;
+}
+
 void SerialFlashChip::eraseBlock(uint32_t addr)
 {
 	uint8_t f = flags;

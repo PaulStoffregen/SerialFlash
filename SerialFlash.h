@@ -50,6 +50,7 @@ public:
 	static void wait();
 	static void write(uint32_t addr, const void *buf, uint32_t len);
 	static void eraseAll();
+	static void eraseSector(uint32_t addr);
 	static void eraseBlock(uint32_t addr);
 
 	static SerialFlashFile open(const char *filename);
