@@ -30,43 +30,53 @@
 
 #include <Arduino.h>
 #include <SPI.h>
+#include "util/SerialFlash_directwrite.h"
 
 class SerialFlashFile;
 
 class SerialFlashChip
 {
 public:
-	static bool begin(SPIClass& device, uint8_t pin = 6);
-	static bool begin(uint8_t pin = 6);
-	static void changeSettings(SPISettings& settings);
-	static uint32_t capacity(const uint8_t *id);
-	static uint32_t blockSize();
-	static void sleep();
-	static void wakeup();
-	static void readID(uint8_t *buf);
-	static void readSerialNumber(uint8_t *buf);
-	static void read(uint32_t addr, void *buf, uint32_t len);
-	static bool ready();
-	static void wait();
-	static void write(uint32_t addr, const void *buf, uint32_t len);
-	static void eraseAll();
-	static void eraseSector(uint32_t addr);
-	static void eraseBlock(uint32_t addr);
+	SerialFlashChip();
+	bool begin(SPIClass& device, uint8_t pin = 6);
+	bool begin(uint8_t pin = 6);
+	void changeSettings(SPISettings& settings);
+	uint32_t capacity(const uint8_t *id);
+	uint32_t blockSize();
+	void sleep();
+	void wakeup();
+	void readID(uint8_t *buf);
+	void readSerialNumber(uint8_t *buf);
+	void read(uint32_t addr, void *buf, uint32_t len);
+	bool ready();
+	void wait();
+	void write(uint32_t addr, const void *buf, uint32_t len);
+	void eraseAll();
+	void eraseSector(uint32_t addr);
+	void eraseBlock(uint32_t addr);
 
-	static SerialFlashFile open(const char *filename);
-	static bool create(const char *filename, uint32_t length, uint32_t align = 0);
-	static bool createErasable(const char *filename, uint32_t length) {
+	SerialFlashFile open(const char *filename);
+	bool create(const char *filename, uint32_t length, uint32_t align = 0);
+	bool createErasable(const char *filename, uint32_t length) {
 		return create(filename, length, blockSize());
 	}
-	static bool exists(const char *filename);
-	static bool remove(const char *filename);
-	static bool remove(SerialFlashFile &file);
-	static void opendir() { dirindex = 0; }
-	static bool readdir(char *filename, uint32_t strsize, uint32_t &filesize);
+	bool exists(const char *filename);
+	bool remove(const char *filename);
+	bool remove(SerialFlashFile &file);
+	void opendir() { dirindex = 0; }
+	bool readdir(char *filename, uint32_t strsize, uint32_t &filesize);
+protected:
+	SPISettings SPICONFIG;
+
+	volatile IO_REG_TYPE *cspin_basereg;
+	IO_REG_TYPE cspin_bitmask;
+
+	SPIClass* SPIPORT;
+
 private:
-	static uint16_t dirindex; // current position for readdir()
-	static uint8_t flags;	// chip features
-	static uint8_t busy;	// 0 = ready
+	uint16_t dirindex; // current position for readdir()
+	uint8_t flags;	// chip features
+	uint8_t busy;	// 0 = ready
 				// 1 = suspendable program operation
 				// 2 = suspendable erase operation
 				// 3 = busy for realz!!

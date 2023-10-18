@@ -26,20 +26,9 @@
  */
 
 #include "SerialFlash.h"
-#include "util/SerialFlash_directwrite.h"
 
 #define CSASSERT()  DIRECT_WRITE_LOW(cspin_basereg, cspin_bitmask)
 #define CSRELEASE() DIRECT_WRITE_HIGH(cspin_basereg, cspin_bitmask)
-static SPISettings SPICONFIG(50000000, MSBFIRST, SPI_MODE0);
-
-uint16_t SerialFlashChip::dirindex = 0;
-uint8_t SerialFlashChip::flags = 0;
-uint8_t SerialFlashChip::busy = 0;
-
-static volatile IO_REG_TYPE *cspin_basereg;
-static IO_REG_TYPE cspin_bitmask;
-
-static SPIClass* SPIPORT = &SPI;
 
 #define FLAG_32BIT_ADDR		0x01	// larger than 16 MByte address
 #define FLAG_STATUS_CMD70	0x02	// requires special busy flag check
@@ -356,6 +345,15 @@ bool SerialFlashChip::ready()
 //#define FLAG_STATUS_CMD70	0x02	// requires special busy flag check
 //#define FLAG_DIFF_SUSPEND	0x04	// uses 2 different suspend commands
 //#define FLAG_256K_BLOCKS	0x10	// has 256K erase blocks
+
+SerialFlashChip::SerialFlashChip()
+	: SPICONFIG(50000000, MSBFIRST, SPI_MODE0),
+	  dirindex(0),
+	  flags(0),
+	  busy(0),
+	  SPIPORT(&SPI)
+{
+}
 
 bool SerialFlashChip::begin(SPIClass& device, uint8_t pin)
 {
