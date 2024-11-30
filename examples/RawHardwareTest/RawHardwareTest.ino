@@ -394,6 +394,8 @@ const char * id2chip(const unsigned char *id)
 			if (id[2] == 0x17) return "W25Q64FV";
 			if (id[2] == 0x18) return "W25Q128FV";
 			if (id[2] == 0x19) return "W25Q256FV";
+			if (id[2] == 0x20) return "W25Q512JV";
+			if (id[2] == 0x21) return "W25Q01JV";
 		}
 	}
 	if (id[0] == 0x01) {
