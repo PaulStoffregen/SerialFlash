@@ -73,13 +73,24 @@ private:
 extern SerialFlashChip SerialFlash;
 
 
-class SerialFlashFile
+class SerialFlashFile : public Stream
 {
 public:
 	constexpr SerialFlashFile() { }
 	operator bool() {
 		if (address > 0) return true;
 		return false;
+	}
+	virtual int read() {
+		byte b;
+		if (read(&b, sizeof(b)) == 0) return -1;
+		return b;
+	}
+	virtual int peek() {
+		byte b;
+		if (offset >= length) return -1;
+		SerialFlash.read(address + offset, &b, sizeof(b));
+		return b;
 	}
 	uint32_t read(void *buf, uint32_t rdlen) {
 		if (offset + rdlen > length) {
@@ -89,6 +100,12 @@ public:
 		SerialFlash.read(address + offset, buf, rdlen);
 		offset += rdlen;
 		return rdlen;
+	}
+	virtual size_t write(uint8_t b) {
+		return write(&b, sizeof(b));
+	}
+	virtual size_t write(const uint8_t *buffer, size_t size) {
+		return write((const void*)buffer, size);
 	}
 	uint32_t write(const void *buf, uint32_t wrlen) {
 		if (offset + wrlen > length) {
@@ -108,12 +125,12 @@ public:
 	uint32_t size() {
 		return length;
 	}
-	uint32_t available() {
+	virtual int available() {
 		if (offset >= length) return 0;
 		return length - offset;
 	}
 	void erase();
-	void flush() {
+	virtual void flush() {
 	}
 	void close() {
 	}
