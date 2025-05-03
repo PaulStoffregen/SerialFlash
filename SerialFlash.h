@@ -50,7 +50,8 @@ public:
 	static void write(uint32_t addr, const void *buf, uint32_t len);
 	static void eraseAll();
 	static void eraseBlock(uint32_t addr);
-
+  static void reset();
+  
 	static SerialFlashFile open(const char *filename);
 	static bool create(const char *filename, uint32_t length, uint32_t align = 0);
 	static bool createErasable(const char *filename, uint32_t length) {
