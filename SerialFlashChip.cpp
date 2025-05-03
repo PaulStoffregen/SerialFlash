@@ -35,6 +35,9 @@
 uint16_t SerialFlashChip::dirindex = 0;
 uint8_t SerialFlashChip::flags = 0;
 uint8_t SerialFlashChip::busy = 0;
+bool SerialFlashChip::writing = false;
+uint8_t SerialFlashChip::lastErr = SF_OK;
+uint32_t SerialFlashChip::totalCapacity = 0;
 
 static volatile IO_REG_TYPE *cspin_basereg;
 static IO_REG_TYPE cspin_bitmask;
@@ -51,6 +54,7 @@ static SPIClass *SPIPORT = &SPI;
 void SerialFlashChip::wait(void)
 {
 	uint32_t status;
+	uint8_t safety = 16; //prevent busy loop
 	//Serial.print("wait-");
 	while (1) {
 		SPIPORT->beginTransaction(SPICONFIG);
@@ -72,6 +76,11 @@ void SerialFlashChip::wait(void)
 			SPIPORT->endTransaction();
 			//Serial.printf("b=%02x.", status & 0xFF);
 			if (!(status & 1)) break;
+		}
+		safety--;
+		if (0 == safety) {
+			yield(); //prevent watchdog reset
+			safety = 16;
 		}
 	}
 	busy = 0;
@@ -264,6 +273,23 @@ void SerialFlashChip::eraseAll()
 	busy = 3;
 }
 
+void SerialFlashChip::unprotectAll()
+{
+	SPIPORT.beginTransaction(SPICONFIG);
+	CSASSERT();
+	// write enable command
+	SPIPORT.transfer(0x06);
+	CSRELEASE();
+	delayMicroseconds(1);
+	CSASSERT();
+	// Write status register
+	SPIPORT.transfer(0x01);
+	SPIPORT.transfer(0x02); //WEL=1, rest of the bits are 0
+	CSRELEASE();
+	SPIPORT.endTransaction();
+	wait();
+}
+
 void SerialFlashChip::eraseBlock(uint32_t addr)
 {
 	uint8_t f = flags;
@@ -393,6 +419,7 @@ bool SerialFlashChip::begin(uint8_t pin)
 	}
 	flags = f;
 	readID(id);
+	totalCapacity = size;
 	return true;
 }
 
@@ -453,8 +480,9 @@ uint32_t SerialFlashChip::capacity(const uint8_t *id)
 {
 	uint32_t n = 1048576; // unknown chips, default to 1 MByte
 
-	if (id[0] == ID0_ADESTO && id[1] == 0x89) {
-		n = 1048576*16; //16MB
+	if (id[0] == ID0_ADESTO) {
+		//bottom 5 bits of ID1 specify capacity
+		n = 1ul << (15 + (id[1] & 0b11111));
 	} else
 	if (id[2] >= 16 && id[2] <= 31) {
 		n = 1ul << id[2];
@@ -526,5 +554,5 @@ AT25SF128A              32      64
 // SST26VF064		8	?	BF 26 43
 // LE25U40CMC		1/2	64	62 06 13
 // Adesto AT25SF128A    16              1F 89 01
-
+// Adesto AT25SF641B    8       ?       1F 88 01
 SerialFlashChip SerialFlash;

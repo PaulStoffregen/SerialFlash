@@ -31,6 +31,16 @@
 #include <Arduino.h>
 #include <SPI.h>
 
+// supports auto growing files when writing
+#define SF_FEATURE_AUTO_GROW
+
+#define SF_OK                      0
+#define SF_ERROR_FAILED            1
+#define SF_ERROR_WRITING           2
+#define SF_ERROR_DISK_FULL         3
+#define SF_ERROR_OVERFLOW          4
+#define SF_ERROR_CLOSED            5
+
 class SerialFlashFile;
 
 class SerialFlashChip
@@ -50,18 +60,22 @@ public:
 	static void write(uint32_t addr, const void *buf, uint32_t len);
 	static void eraseAll();
 	static void eraseBlock(uint32_t addr);
+	static void unprotectAll();
 
-	static SerialFlashFile open(const char *filename);
-	static bool create(const char *filename, uint32_t length, uint32_t align = 0);
-	static bool createErasable(const char *filename, uint32_t length) {
-		return create(filename, length, blockSize());
-	}
+	static SerialFlashFile open(const char *filename, char mode = 'r');
+	static SerialFlashFile create(const char *filename, uint32_t length, uint32_t align = 0);
+	static SerialFlashFile createErasable(const char *filename, uint32_t length);
 	static bool exists(const char *filename);
 	static bool remove(const char *filename);
 	static bool remove(SerialFlashFile &file);
 	static void opendir() { dirindex = 0; }
 	static bool readdir(char *filename, uint32_t strsize, uint32_t &filesize);
+
+	static uint8_t lastErr; //last error
 private:
+	friend class SerialFlashFile; 
+	static uint32_t totalCapacity; //flash total capacity
+	static bool writing; // file opened for incremental writing
 	static uint16_t dirindex; // current position for readdir()
 	static uint8_t flags;	// chip features
 	static uint8_t busy;	// 0 = ready
@@ -82,31 +96,70 @@ public:
 		return false;
 	}
 	uint32_t read(void *buf, uint32_t rdlen) {
+		if (!address) {
+			SerialFlashChip::lastErr = SF_ERROR_CLOSED;
+			return 0;
+		}
 		if (offset + rdlen > length) {
-			if (offset >= length) return 0;
+			if (offset >= length) {
+				SerialFlashChip::lastErr = SF_ERROR_OVERFLOW;
+				return 0;
+			}
 			rdlen = length - offset;
 		}
 		SerialFlash.read(address + offset, buf, rdlen);
 		offset += rdlen;
+		SerialFlashChip::lastErr = SF_OK;
 		return rdlen;
 	}
+	char read() {
+		char b = -1;
+		read(&b, 1);
+		return b;
+	}
 	uint32_t write(const void *buf, uint32_t wrlen) {
-		if (offset + wrlen > length) {
-			if (offset >= length) return 0;
-			wrlen = length - offset;
+		if (!address) {
+			SerialFlashChip::lastErr = SF_ERROR_CLOSED;
+			return 0;
 		}
+		if (length > 0) {
+			if (offset + wrlen > length) {
+				if (offset >= length) {
+					SerialFlashChip::lastErr = SF_ERROR_OVERFLOW;
+					return 0;
+				}
+				wrlen = length - offset;
+			}
+		} else {
+			// handle auto growing
+			if (address + offset <  SerialFlashChip::totalCapacity) {
+				if (address + offset + wrlen > SerialFlashChip::totalCapacity) {
+					wrlen = SerialFlashChip::totalCapacity - address + offset; 
+				}
+			} else {
+				SerialFlashChip::lastErr = SF_ERROR_DISK_FULL;
+				return 0;
+			}
+		}
+
 		SerialFlash.write(address + offset, buf, wrlen);
 		offset += wrlen;
+		SerialFlashChip::lastErr = SF_OK;
 		return wrlen;
 	}
 	void seek(uint32_t n) {
+		// seeking is not allowed while writing to an auto growing file
+		if (length == 0) {
+			SerialFlashChip::lastErr = SF_ERROR_WRITING;
+			return;
+		}
 		offset = n;
 	}
 	uint32_t position() {
 		return offset;
 	}
 	uint32_t size() {
-		return length;
+		return length ? length : offset;
 	}
 	uint32_t available() {
 		if (offset >= length) return 0;
@@ -115,8 +168,7 @@ public:
 	void erase();
 	void flush() {
 	}
-	void close() {
-	}
+	void close();
 	uint32_t getFlashAddress() {
 		return address;
 	}
